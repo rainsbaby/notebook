@@ -94,8 +94,25 @@ Checkpoint 执行详细流程如下。
 
 At Least Once：
 
+保证At Least Once，主要是基于：
+1. 定时执行Checkpoint，异常时基于Checkpoint恢复，进行消息重播重新处理；
+2. 一个Operator有多个输入流时，输入流中的Barrier不进行对齐。消息重播时，先进行snapshot的流，可能出现数据重复处理的情况。
+
+如图所示：
+todo: barrier不对齐
+
+
 Exactly Once：
 
+要保证Exactly Once，主要是基于：
+1. 一个Operator有多个输入流时，输入流的Barrier要进行对齐。即要等所有输入流中的Barrier都到齐后，才发生Barrier到下游并进行snapshot。在这之前到输入数据，都保存在缓存中。
+2. Sink支持两阶段提交，输出的目标（Kafka/Hdfs等）要支持事务。Sink进行snapshot，并将结果医事务形式预提交到Kafka。待所有节点的snapshot完成后，CheckpointCoordinator通知Sink端，Sink端通知Kafka完成事务。过程中发生异常，就会通知Kafka端对事务进行回滚。
+
+如图所示：
+
+todo: barrier对齐
+
+todo: sink事务
 
 
 # 总结
