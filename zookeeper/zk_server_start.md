@@ -1,14 +1,12 @@
 
 
-created on 2021-05-10
-
 # 几个问题：
 
-- [ ]  磁盘存储了哪些内容？如何存储和恢复的？
-- [ ]  一次数据更新是如何执行的？
-- [ ]  节点监听是如何添加的？节点更新如何触发监听事件的？
-- [ ]  Leader选举如何进行？
-- [ ]  网络连接是如何进行的？
+* [ ]  磁盘存储了哪些内容？如何存储和恢复的？
+* [ ]  一次数据更新是如何执行的？
+* [ ]  节点监听是如何添加的？节点更新如何触发监听事件的？
+* [ ]  Leader选举如何进行？
+* [ ]  网络连接是如何进行的？
 
 # 入口：QuorumPeerMain类
 
@@ -215,7 +213,7 @@ public void runFromConfig(ServerConfig config) throws IOException, AdminServerEx
 
 主要启动流程可总结为：
 
-![132d74149a5500a3a465940484df9dfd.png](evernotecid://BAB0966A-E6E2-4E29-A334-B0A11405B828/appyinxiangcom/9031308/ENResource/p580)@w=400
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/zk/zk_server_start.png)
 
 
 ### ZooKeeperServerMain
@@ -228,10 +226,10 @@ Standalone模式的ZookeeperServer。
 
 建立连接及request处理流程：
 
-![c7ab07bb8365a72b409a94bf9087b48d.png](evernotecid://BAB0966A-E6E2-4E29-A334-B0A11405B828/appyinxiangcom/9031308/ENResource/p581)@w=400
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/zk/zk_server_start_detail.png)
 
 
-![a1673119fccd64a2899310d6e4b75bbb.png](evernotecid://BAB0966A-E6E2-4E29-A334-B0A11405B828/appyinxiangcom/9031308/ENResource/p582)@w=500
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/zk/zk_server_network.png)
 
 
 ### AdminServer
@@ -345,7 +343,7 @@ boolean containsQuorum(Set<Long> set);
 由内部的SendWorker和RecvWorker线程负责发送和接收工作。Listener负责accept其他server发过来的连接请求。
 
 ### 选举的核心流程
-![51c7e58e4e2d7b7c7e65bf4fffb10d3c.png](evernotecid://BAB0966A-E6E2-4E29-A334-B0A11405B828/appyinxiangcom/9031308/ENResource/p585)@w=500
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/zk/zk_server_leader_election.png)
 
 ### 节点的角色转变
 
@@ -354,12 +352,12 @@ boolean containsQuorum(Set<Long> set);
 #### 1.Leader
 
 ZAB协议状态流转：
-![a6c4fa7e0fbf16cf8c10475cbe2d7571.png](evernotecid://BAB0966A-E6E2-4E29-A334-B0A11405B828/appyinxiangcom/9031308/ENResource/p587)@w=500
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/zk/zk_server_start_leader.png)
 
 
 #### 2.Follower
 Follower端状态流转：
-![1840af944447ca84047d2b46932aa54c.png](evernotecid://BAB0966A-E6E2-4E29-A334-B0A11405B828/appyinxiangcom/9031308/ENResource/p588)@w=500
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/zk/zk_server_start_follower.png)
 
 
 #### 3.Observer
