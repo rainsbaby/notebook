@@ -69,7 +69,7 @@ Operator chain中有一个head operator和多个chained operator。
 
 Checkpoint执行架构如下图所示。
 
-![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/flink_checkpoint_architecture.drawio.png)
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/flink/flink_checkpoint_architecture.drawio.png)
 
 * JobMaster中CheckpointCoordinator负责调度，通知SourceOperator所在的TaskExecutor开始Checkpoint；
 * Source发送Barrier给下游Operator，并执行自己的snapshot；
@@ -81,7 +81,7 @@ Checkpoint执行架构如下图所示。
 **Checkpoint详细流程**
 
 Checkpoint 执行详细流程如下。
-![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/flink_checkpoint_flow_detail.png)
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/flink/flink_checkpoint_flow_detail.png)
 
 * JobMaster启动，创建Scheduler；
 * Scheduler创建ExecutionGraph；
