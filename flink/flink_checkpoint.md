@@ -1,3 +1,4 @@
+
 # 简介
 Checkpoint/savepoint机制是Flink中的重要内容，主要是定时保存或手动触发保存所有节点的状态，存储到内存或HDFS等外部存储中。
 
@@ -126,9 +127,10 @@ At Least Once：
 保证At Least Once，主要是基于：
 
 1. 定时执行Checkpoint，异常时基于Checkpoint恢复，进行消息重播重新处理；
-2. 一个Operator有多个输入流时，输入流中的Barrier不进行对齐。
+2.  Source需要能够支持消息重播；
+3. 一个Operator有多个输入流时，输入流中的Barrier不进行对齐。
 
-At Least Once的Barrier实现过程见类 CheckpointBarrierTracker，其主要处理过程如下。
+At Least Once的Barrier实现过程见类 CheckpointBarrierTracker，其主要处理过程代码如下。
 
 由此可以看出，在有多个输入流的情况下，当某个输入流的Barrier到达时，并不会阻塞该流后续的数据处理，只是记录该流的Barrier已到达。
 
@@ -136,9 +138,9 @@ At Least Once的Barrier实现过程见类 CheckpointBarrierTracker，其主要�
 
 当所有流的Barrier都已到达时，开始进行snapshot。
 
-假设
 
 ```
+// CheckpointBarrierTracker 类
 // 所有上游总数
 private int numOpenChannels;
 //已接收到Barrier（但不是所有）的Checkpoint
@@ -198,7 +200,33 @@ public void processBarrier(
     }
 }
 ```
+首先，Barrier如下图所示，是Source插入流中的一个轻量级数据，每次checkpoint的barrier可以区分。
 
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/flink/flink_checkpoint_barrier.png)
+
+At Least Once与Exactly Once区别如下图所示。
+
+假设有2个Source，Operator负责读取数字并求和，输出结果到下游。
+
+假设Input 1中barrier先到达，到达之后不会阻塞流1的处理。
+
+之后input2中barrier到达，开始进行snapshot操作。此时Operator求和结果为141（实际应为135）。
+
+要理解这里，需要将Operator与Source的snapshot中存储的状态进行对比。
+
+Source1中1、2、3位于barrier之后，而Operator中1、2、3位于barrier之前，即Operator已经对1、2、3进行了计算。
+
+那么，当我们基于这次的checkpoint进行状态恢复时，Source1会从1、2、3开始重播。这时，Operator会将1、2、3再累加一次，导致了计算结果的不准确，这就是At Least Once可能导致的问题。
+
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/flink/flink_checkpoint_at_least_once.drawio.png)
+
+而在Exactly Once下，input 1中barrier先到达时，就会阻塞流1的处理，1、2、3会被放入缓存中。
+
+待input2中barrier到达，开始进行snapshot操作。此时，先发送barrier到下游，然后开始自身的snapshot。
+
+等snapshot完成后，开始处理1、2、3。
+
+因此在Exactly Once下，Source1中和Operator中1、2、3都位于barrier之后，1、2、3不会被重复计算。
 
 如图所示：
 
@@ -210,13 +238,19 @@ Exactly Once：
 要保证Exactly Once，主要是基于：
 
 1. 一个Operator有多个输入流时，输入流的Barrier要进行对齐。即要等所有输入流中的Barrier都到齐后，才发送Barrier到下游并进行snapshot。在这之前到达的输入数据，都保存在缓存中，不会发送给下游。
-2. Sink支持两阶段提交，输出的目标（Kafka/Hdfs等）要支持事务。Sink进行snapshot，并将结果医事务形式预提交到Kafka。待所有节点的snapshot完成后，CheckpointCoordinator通知Sink端，Sink端通知Kafka完成事务。过程中发生异常，就会通知Kafka端对事务进行回滚。
+2. 要支持Source到输出端的端到端的Exactly Once，需要Sink支持两阶段提交，输出的目标（Kafka/Hdfs等）要支持事务。Sink进行snapshot，并将结果以事务形式预提交到Kafka。待所有节点的snapshot完成后，CheckpointCoordinator通知Sink端，Sink端通知Kafka完成事务。过程中发生异常，就会通知Kafka端对事务进行回滚。
+
+**Unaligned Checkpointing：**
+
+在新版本Flink中，出现了一种称为**Unaligned Checkpointing** 的机制，既可以满足exactly once，又不需要做Barrier对齐。
 
 如图所示：
 
-todo: barrier对齐
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/flink/flink_checkpoint_exactlyonce_unaligned.png)
 
-todo: sink事务
+
+
+[ ] sink事务
 
 
 # 总结
