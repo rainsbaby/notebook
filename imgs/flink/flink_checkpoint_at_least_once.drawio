@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2022-01-25T09:40:06.362Z" agent="5.0 (Macintosh)" etag="I-CK287MMStf5PbcQ-8Q" version="16.2.6" type="github">
+<mxfile host="app.diagrams.net" modified="2022-01-25T09:40:29.195Z" agent="5.0 (Macintosh)" etag="5lvjE0qaRGqPsxt1MsQn" version="16.2.6" type="github">
   <diagram id="EfMLN7ML_alIv2Zv0I-k" name="Page-1">
     <mxGraphModel dx="2833" dy="809" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" background="#FFFFFF" math="0" shadow="0">
       <root>
@@ -297,6 +297,15 @@
         </mxCell>
         <mxCell id="WIjb-fkmXjB_v1MrWQip-33" value="Exactly Once" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;labelBackgroundColor=none;labelBorderColor=none;" vertex="1" parent="1">
           <mxGeometry x="-230" y="960" width="140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="WIjb-fkmXjB_v1MrWQip-34" value="13" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;dashed=1;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="480" y="1055" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="WIjb-fkmXjB_v1MrWQip-35" value="12" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;dashed=1;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="520" y="1055" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="WIjb-fkmXjB_v1MrWQip-36" value="11" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;dashed=1;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="560" y="1055" width="40" height="40" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
