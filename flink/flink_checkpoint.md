@@ -248,11 +248,44 @@ Exactly Once：
 
 ![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/flink/flink_checkpoint_exactlyonce_unaligned.png)
 
+Unaligned Checkpointing 的核心为：
+
+> Checkpoints can overtake all in-flight data as long as the in-flight data becomes part of the operator state.
+
+即，要将变化中的数据变为Operator state的一部分，snapshot中存储更多的数据。如上图绿色部分，都是snapshot存储的内容。
+
+而在aligned的checkpoint中，如下图所示，1、2、3等数字并不会存储到snapshot中。
+
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/flink/flink_checkpoint_exactlyonce_aligned.png)
+
+Unaligned Checkpointing原理：
+
+当某个checkpoint的第一个barrier到达时，operator就将barrier加入到输出buffer中，传递给下游；
+
+在其他barrier到来之前，Operator将所有输入buffer的数据都存入snapshot，同时不停止处理数据。
+
+当所有barrier到达时，本operator的snapshot完成。
+
+Unaligned Checkpointing的结果是：
+
+* 也可以实现Exactly Once；
+* Barrier能更快地传递到Sink端；
+* 避免了因等待barrier而导致的反压；
+* checkpoint占用更多的存储空间，恢复时间也相对更长。
 
 
-[ ] sink事务
+
+[ ]  端到端的exaclty once，sink事务
 
 
 # 总结
 
 Checkpoint是Flink中的一个重要内容，是Flink保证At Least Once和Exactly Once的基础之一。
+
+# 参考
+
+[Flink Stateful Stream Processing](https://nightlies.apache.org/flink/flink-docs-release-1.14/docs/concepts/stateful-stream-processing/#checkpointing)
+
+Flink 1.14 源码
+
+《Flink内核原理与实现》
