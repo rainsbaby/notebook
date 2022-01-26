@@ -8,30 +8,42 @@ Checkpoint/savepoint机制是Flink中的重要内容，主要是定时保存或�
 # 核心类
 Flink版本 : 1.14 。
 
-**JobMaster** -- 一个Job的JobManager，每个job在同一时刻有且仅有一个JobMaster。
+#### JobMaster
+
+一个Job的JobManager，每个job在同一时刻有且仅有一个JobMaster。
 
 在HighAvailability配置下，由JobMasterServiceLeadershipRunner参与选举，成为Leader后，启动相应job的JobMaster，并启动job。
 
 其中包括BlobWriter、HeartbeatServices、SlotPoolService、LeaderRetrievalService(ResourceManager相关)、SchedulerNG、JobManagerJobStatusListener等组件。
 
 
-**SchedulerNG **-- Job的调度接口，负责job调度、异常处理等。
+#### SchedulerNG
+
+Job的调度接口，负责job调度、异常处理等。
+
 实现类主要为SchedulerBase，包括ExecutionGraph、ExecutionGraphHandler、OperatorCoordinatorHandler等。
 
-**ExecutionGraph** -- 控制整个job的data flow的分布式执行，粒度细到每个并行的task、每个中间流及其交互。
+#### ExecutionGraph
+控制整个job的data flow的分布式执行，粒度细到每个并行的task、每个中间流及其交互。
 
 实现类主要为DefaultExecutionGraph，主要包括Map<JobVertexID, ExecutionJobVertex> tasks组成的DAG、JobStatusListener、CheckpointCoordinator等。
 
-**CheckpointCoordinator** -- 负责Checkpoint/Savepoint等的核心类，发送消息到相应task来触发checkpoint的创建，接收task的回应。
+#### CheckpointCoordinator
+负责Checkpoint/Savepoint等的核心类，发送消息到相应task来触发checkpoint的创建，接收task的回应。
 包括Map<Long, PendingCheckpoint>、CompletedCheckpointStore(已完成的checkpoint)等。
 
-**Execution** -- JobManager端一个Subtask/ExecutionVertex的一次执行。
+#### Execution
+
+JobManager端一个Subtask/ExecutionVertex的一次执行。
+
 一个Subtask多次执行时(失败恢复/重计算/更新配置等原因)，对应多个Execution。
 
-**TaskExecutor** -- TaskManager的对应Class。
-负责多个Task的执行。
+#### TaskExecutor
 
-**Task** -- TaskManager中，一个Subtask的一个并行度的执行。
+TaskManager的对应Class。负责多个Task的执行。
+
+#### Task
+TaskManager中，一个Subtask的一个并行度的执行。
 
 包括operator执行、输入、输出、与JobManager的交互。
 
@@ -39,11 +51,13 @@ Flink版本 : 1.14 。
 
 Task不负责与其他task的交互，也不知道是否是第一次执行/重复执行，这些信息由JobManager维护。
 
-**OperatorChain** --  表示由一个StreamTask执行的一串Operator。
+#### OperatorChain
+表示由一个StreamTask执行的一串Operator。
 
 入口为mainOperator，它负责拉取输入并生产数据push给后续其他operator。
 
-**StreamTask** --  每个StreamTask执行一个/多个StreamOperator（如连续的map/flatmap/filter的组成operator chain）。
+#### StreamTask
+每个StreamTask执行一个/多个StreamOperator（如连续的map/flatmap/filter的组成operator chain）。
 
 Operator chain在一个线程中同步执行，因此有同样的stream paritition。
 
@@ -51,21 +65,17 @@ Operator chain中有一个head operator和多个chained operator。
 
 有one-input和two-input 类型的head operator。
 
-**CheckpointedInputGate** -- 基于CheckpointBarrierHandler，处理从InputGate得到的CheckpointBarrier及cancel/end等checkpoint相关Event。
+#### CheckpointedInputGate
+基于CheckpointBarrierHandler，处理从InputGate得到的CheckpointBarrier及cancel/end等checkpoint相关Event。
 
-**CheckpointBarrierHandler** -- 处理接收到的checkpoint barrier。
-
-**TwoPhaseCommitSinkFunction** -- 
-
-**KafkaSink** -- 
-
-
+#### CheckpointBarrierHandler
+处理接收到的checkpoint barrier。
 
 
 
 # 主要流程
 
-**架构**
+## 架构
 
 Checkpoint执行架构如下图所示。
 
@@ -78,7 +88,7 @@ Checkpoint执行架构如下图所示。
 * CheckpointCoordinator收集所有Task的Checkpoint状态。当所有task执行snapshot成功时，通知各个task；当checkpoint出现异常时，通知各task取消执行checkpoint。
 
 
-**Checkpoint详细流程**
+## Checkpoint详细流程
 
 Checkpoint 执行详细流程如下。
 ![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/flink/flink_checkpoint_flow_detail.png)
@@ -100,7 +110,7 @@ Checkpoint 执行详细流程如下。
 
 
 
-**基于 Checkpoint 的恢复**
+## 基于 Checkpoint 的恢复
 
 基于Checkpoint的恢复，主要内容可见CheckpointCoordinator的restoreLatestCheckpointedStateToAll等方法。
 
@@ -120,9 +130,9 @@ private void maybeRestartTasks(final FailureHandlingResult failureHandlingResult
 }
 ```
 
-**如何保证At Least Once 和 Exactly Once ？**
+## 如何保证At Least Once 和 Exactly Once？
 
-At Least Once：
+### At Least Once：
 
 保证At Least Once，主要是基于：
 
@@ -204,7 +214,7 @@ public void processBarrier(
 
 ![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/flink/flink_checkpoint_barrier.png)
 
-At Least Once与Exactly Once区别如下图所示。
+### At Least Once与Exactly Once区别如下图所示
 
 假设有2个Source，Operator负责读取数字并求和，输出结果到下游。
 
@@ -230,17 +240,16 @@ Source1中1、2、3位于barrier之后，而Operator中1、2、3位于barrier之
 
 如图所示：
 
-todo: barrier不对齐
 
 
-Exactly Once：
+### Exactly Once
 
 要保证Exactly Once，主要是基于：
 
 1. 一个Operator有多个输入流时，输入流的Barrier要进行对齐。即要等所有输入流中的Barrier都到齐后，才发送Barrier到下游并进行snapshot。在这之前到达的输入数据，都保存在缓存中，不会发送给下游。
 2. 要支持Source到输出端的端到端的Exactly Once，需要Sink支持两阶段提交，输出的目标（Kafka/Hdfs等）要支持事务。Sink进行snapshot，并将结果以事务形式预提交到Kafka。待所有节点的snapshot完成后，CheckpointCoordinator通知Sink端，Sink端通知Kafka完成事务。过程中发生异常，就会通知Kafka端对事务进行回滚。
 
-**Unaligned Checkpointing：**
+### Unaligned Checkpointing
 
 在新版本Flink中，出现了一种称为**Unaligned Checkpointing** 的机制，既可以满足exactly once，又不需要做Barrier对齐。
 
@@ -258,7 +267,7 @@ Unaligned Checkpointing 的核心为：
 
 ![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/flink/flink_checkpoint_exactlyonce_aligned.png)
 
-Unaligned Checkpointing原理：
+**Unaligned Checkpointing原理：**
 
 当某个checkpoint的第一个barrier到达时，operator就将barrier加入到输出buffer中，传递给下游；
 
@@ -275,8 +284,24 @@ Unaligned Checkpointing的结果是：
 
 
 
-[ ]  端到端的exaclty once，sink事务
+### 端到端的Exaclty Once
 
+要实现端到端的Exaclty Once，需要Sink端支持事务。
+
+在Flink中，通过两阶段提交来实现Sink的Exaclty Once。
+
+开始Sink端的snapshot后，先对数据进行预提交，待整个job的checkpoint完成后，再正式提交事务。
+
+这个过程中，出现任何问题，都需要对事务进行回滚。
+
+具体实现有两种：
+
+1. 继承类TwoPhaseCommitSinkFunction，实现beginTransaction/preCommit/commit等方法。
+2. 实现Sink/SinkWriter/Committer/GlobalCommitter等接口，但在1.14版本中该系列接口是Experimental的，还没有正式使用。具体实现可参考KafkaSink/KafkaWriter/KafkaCommitter。
+
+Sink相关接口关系如下：
+
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/flink/flink_sink_uml.png)
 
 # 总结
 
