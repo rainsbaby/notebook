@@ -91,6 +91,7 @@ Checkpoint执行架构如下图所示。
 ## Checkpoint详细流程
 
 Checkpoint 执行详细流程如下。
+
 ![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/flink/flink_checkpoint_flow_detail.png)
 
 * JobMaster启动，创建Scheduler；
@@ -132,7 +133,7 @@ private void maybeRestartTasks(final FailureHandlingResult failureHandlingResult
 
 ## 如何保证At Least Once 和 Exactly Once？
 
-### At Least Once：
+### At Least Once
 
 保证At Least Once，主要是基于：
 
@@ -140,9 +141,9 @@ private void maybeRestartTasks(final FailureHandlingResult failureHandlingResult
 2.  Source需要能够支持消息重播；
 3. 一个Operator有多个输入流时，输入流中的Barrier不进行对齐。
 
-At Least Once的Barrier实现过程见类 CheckpointBarrierTracker，其主要处理过程代码如下。
+At Least Once的Barrier处理过程见类 *CheckpointBarrierTracker*，其主要处理过程代码如下。
 
-由此可以看出，在有多个输入流的情况下，当某个输入流的Barrier到达时，并不会阻塞该流后续的数据处理，只是记录该流的Barrier已到达。
+由此可以看出，在有多个输入流的情况下，当某个输入流的Barrier到达时，并**不会阻塞该流后续的数据处理**，只是记录该流的Barrier已到达。
 
 当某个Checkpoint的第一个Barrier到达时，创建一个CheckpointBarrierCount放入队列中，使用第一个Barrier的checkpointId及timestamp作为该checkpoint的标识。
 
@@ -214,15 +215,15 @@ public void processBarrier(
 
 ![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/flink/flink_checkpoint_barrier.png)
 
-### At Least Once与Exactly Once区别如下图所示
+### At Least Once与Exactly Once区别
 
-假设有2个Source，Operator负责读取数字并求和，输出结果到下游。
+如下图所示，假设有2个Source，Operator负责读取数字并求和，输出结果到下游。
 
-假设Input 1中barrier先到达，到达之后不会阻塞流1的处理。
+假设Input 1中barrier先到达，到达之后不会阻塞流1的处理，这就是**At Least Once**。
 
 之后input2中barrier到达，开始进行snapshot操作。此时Operator求和结果为141（实际应为135）。
 
-要理解这里，需要将Operator与Source的snapshot中存储的状态进行对比。
+要理解这里，需要将**Operator与Source的snapshot中存储的状态**进行对比。
 
 Source1中1、2、3位于barrier之后，而Operator中1、2、3位于barrier之前，即Operator已经对1、2、3进行了计算。
 
@@ -230,7 +231,7 @@ Source1中1、2、3位于barrier之后，而Operator中1、2、3位于barrier之
 
 ![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/flink/flink_checkpoint_at_least_once.drawio.png)
 
-而在Exactly Once下，input 1中barrier先到达时，就会阻塞流1的处理，1、2、3会被放入缓存中。
+而在**Exactly Once**下，input 1中barrier先到达时，就会阻塞流1的处理，1、2、3会被放入缓存中。
 
 待input2中barrier到达，开始进行snapshot操作。此时，先发送barrier到下游，然后开始自身的snapshot。
 
@@ -238,16 +239,18 @@ Source1中1、2、3位于barrier之后，而Operator中1、2、3位于barrier之
 
 因此在Exactly Once下，Source1中和Operator中1、2、3都位于barrier之后，1、2、3不会被重复计算。
 
-如图所示：
 
 
 
 ### Exactly Once
+Exactly Once的Barrier处理过程见类*SingleCheckpointBarrierHandler*，其中包含aligned/Unaligned的实现方式。
 
 要保证Exactly Once，主要是基于：
 
-1. 一个Operator有多个输入流时，输入流的Barrier要进行对齐。即要等所有输入流中的Barrier都到齐后，才发送Barrier到下游并进行snapshot。在这之前到达的输入数据，都保存在缓存中，不会发送给下游。
+1. 一个Operator有多个输入流时，输入流的Barrier要进行对齐。要等所有输入流中的Barrier都到齐后，才发送Barrier到下游并进行snapshot。在这之前到达的输入数据，都保存在缓存中，不会发送给下游。
 2. 要支持Source到输出端的端到端的Exactly Once，需要Sink支持两阶段提交，输出的目标（Kafka/Hdfs等）要支持事务。Sink进行snapshot，并将结果以事务形式预提交到Kafka。待所有节点的snapshot完成后，CheckpointCoordinator通知Sink端，Sink端通知Kafka完成事务。过程中发生异常，就会通知Kafka端对事务进行回滚。
+
+Exactly Once下，数据处理回被barrier阻塞，因此会导致背压。
 
 ### Unaligned Checkpointing
 
@@ -286,7 +289,7 @@ Unaligned Checkpointing的结果是：
 
 ### 端到端的Exaclty Once
 
-要实现端到端的Exaclty Once，需要Sink端支持事务。
+要实现端到端的Exaclty Once，需要**Sink端支持事务**。
 
 在Flink中，通过两阶段提交来实现Sink的Exaclty Once。
 
@@ -306,6 +309,8 @@ Sink相关接口关系如下：
 # 总结
 
 Checkpoint是Flink中的一个重要内容，是Flink保证At Least Once和Exactly Once的基础之一。
+
+本文梳理了Checkpoint的主要流程，并对At Least Once和Exactly Once的实现方式进行了介绍。
 
 # 参考
 
