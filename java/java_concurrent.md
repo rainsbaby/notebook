@@ -1,3 +1,5 @@
+《JAVA并发实现原理》
+
 线程
 
 #### 线程的优雅关闭：
@@ -148,14 +150,164 @@ A happen-before B不代表A一定在B之前执行。因为，对于多线程程�
 * 无锁栈：对head指针进行CAS操作
 * 无锁链表：例子如ConcurrentSkipListMap
 
+### Atomic
+
+#### AtomicInteger和AtomicLong
+
+AtomicInteger和AtomicLong都基于Unsafe实现CAS操作，以此进行update。update时，自旋更新value，避免使用悲观锁。
+
+```
+public class AtomicInteger extends Number implements java.io.Serializable {
+    private static final Unsafe unsafe = Unsafe.getUnsafe();
+    private static final long valueOffset;
+    static {
+        try {
+            valueOffset = unsafe.objectFieldOffset
+                (AtomicInteger.class.getDeclaredField("value"));
+        } catch (Exception ex) { throw new Error(ex); }
+    }
+    private volatile int value;
+    
+    public final long accumulateAndGet(long x,
+                                       LongBinaryOperator accumulatorFunction) {
+        long prev, next;
+        do {
+            prev = get();
+            next = accumulatorFunction.applyAsLong(prev, x);
+        } while (!compareAndSet(prev, next)); //自旋CAS，更新value
+        return next;
+    }
+```
+
+#### AtomicBoolean和AtomicReference
+
+在Unsafe类中，只支持int、long、Object三种类型的CAS操作。AtomicBoolean的实现，通过int（0/1）和boolean互转来实现。
+
+#### AtomicStampedReference和AtomicMarkableReference
+
+AtomicStampedReference中有一个版本号stamp，用于解决ABA问题。
+
+```
+public class AtomicStampedReference<V> {
+
+    private static class Pair<T> {
+        final T reference;
+        final int stamp;	 //版本号
+        private Pair(T reference, int stamp) {
+            this.reference = reference;
+            this.stamp = stamp;
+        }
+        static <T> Pair<T> of(T reference, int stamp) {
+            return new Pair<T>(reference, stamp);
+        }
+    }
+
+    private volatile Pair<V> pair;
+```    
+
+当expectedReference==对象当前的reference时，再进一步比较expectedStamp是否等于对象当前的版本号，以此判断数据是否被其他线程修改过。
+
+AtomicMarkableReference与AtomicStampedReference原理类似，只是Pair里面的版本号是boolean类型的，而不是整型的累加变量。
+
+#### AtomicIntegerFieldUpdater、AtomicLongFieldUpdater和AtomicReferenceFieldUpdater
+
+如果是一个已经有的类，在不能更改其源代码的情况下，要想实现对其成员变量的原子操作，就需要AtomicIntegerFieldUpdater。
+
+AtomicIntegerFieldUpdater基于**反射**获取类的成员，也利用CAS实现修改操作。
+
+#### AtomicIntegerArray、AtomicLongArray和Atomic-ReferenceArray
+
+同样基于Unsafe CAS，实现对数组中单个元素的原子操作。
+
+#### Striped64与LongAdder
+
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/java_concurrent/java_concurrent_strip64.png)
+
+AtomicLong内部是一个volatile long型变量，由多个线程对这个变量进行CAS操作。多个线程同时对一个变量进行CAS操作，在高并发的场景下仍不够快。
+
+而在LongAdder中，把一个变量拆成多份，变为多个变量，有些类似于ConcurrentHashMap 的分段锁的例子。
+
+把一个Long型拆成**一个base变量外加多个Cell**，每个Cell包装了一个Long型变量。
+
+当多个线程并发累加的时候，如果并发度低，就直接加到base变量上；如果并发度高，冲突大，平摊到这些Cell上。在最后取值的时候，再把base和这些Cell求sum运算。
+
+在sum求和函数中，并没有对cells[]数组加锁。也就是说，一边有线程对其执行求和操作，一边还有线程修改数组里的值，也就是**最终一致性**，而不是强一致性。
+
+**伪共享与缓存行填充：**
+
+在LongAdder的Cell类的定义中，用了一个独特的注解@sun.misc.Contended。
+
+这是JDK 8之后才有的，之所以这个地方要用缓存行填充，是为了不让Cell[]数组中相邻的元素落到同一个缓存行里，避免缓存刷新时互相影响。
+
+** LongAccumulator：**
+
+ LongAccumulator比LongAdder功能更强大，可以定义初始值，还可以自定义二元操作。
+ 
+ 
+### Lock与Condition
+
+#### ReentrantLock
+
+ ReentrantLock基于内部类Sync实现，主要逻辑位于AQS，Sync有FairSync和NonFairSync两个子类。默认为非公平锁，对应NonFairSync。
+ 
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/java_concurrent/java_concurrent_reentrant_uml.png) 
+
+ ReentrantLock主要内容：
+ 
+ * private volatile int state; 标记锁的状态。
+ * private transient Thread exclusiveOwnerThread; 记录当前持有锁的线程。
+ * 基于park/unpark原语实现对一个线程的阻塞/精准唤醒操作。
+ * 基于CAS实现一个线程安全的无锁队列，维护所有阻塞的线程。
+
+ReentrantLock中state可以为0，表示当前没有加锁；也可以为正数，表示当前线程重入次数，每重入lock一次state加一，每unlock一次state减一。
 
 
+#### ReentrantReadWriteLock
+
+从表面来看，ReentrantReadWriteLock 有ReadLock和WriteLock是两把锁，实际上它只是同一把锁的两个视图而已。
+
+可以理解为是一把锁，线程分成两类：读线程和写线程。读线程和读线程之间不互斥（可以同时拿到这把锁），读线程和写线程互斥，写线程和写线程也互斥。
+ 
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/java_concurrent/java_concurrent_reentrantreadwrite_uml.png)  
+
+ReentrantReadWriteLock中，state被拆成两半：
+
+* 低16位，用于记录写锁。为0时，表示没有加写锁；为正数时，表示写线程重入次数；
+* 高16位，用于记录读锁。
+
+为什么要把一个int类型变量拆成两半，而不是用两个int型变量分别表示读锁和写锁的状态呢？这是因为无法用一次CAS 同时操作两个int变量，所以用了一个int型的高16位和低16位分别表示读锁和写锁的状态。
+
+#### Condition
+
+Condition本身也是一个接口，其功能和wait/notify类似。
+
+Condition必须与Lock一起使用，如ReentrantLock或ReentrantReadWriteLock的WriteLock等。
+
+Condition基于AQS中ConditionObject实现，其中有一个双向链表组成的队列，记录阻塞的线程。
 
 
+#### StampedLock
+
+JDK8新增StampedLock，实现了读写不互斥，可以提高并发度。
+
+三种锁的并发度对比：
+
+* ReentrantLock，无论读写，均互斥；
+* ReentrantReadWriteLock，读与读不互斥，读写互斥，写写互斥；
+* StampedLock，读读不互斥，读写不互斥，写写互斥；
 
 
-
-
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 
 
 ![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/java_concurrent/java_concurrent_queue_uml.png)
