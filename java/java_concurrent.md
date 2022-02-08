@@ -296,31 +296,91 @@ JDK8新增StampedLock，实现了读写不互斥，可以提高并发度。
 * ReentrantReadWriteLock，读与读不互斥，读写互斥，写写互斥；
 * StampedLock，读读不互斥，读写不互斥，写写互斥；
 
+StampedLockn内部不是基于AQS实现，而是重新实现了一个阻塞队列。
+
+其中state被分为三部分，低七位表示读锁状态，第八位表示写锁状态，剩余表示版本号。
+
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/java_concurrent/java_concurrent_stampedlock_class.png)
+
+* 乐观读tryOptimisticRead时，返回版本号，相当于读之前给数据做了一次快照；
+* 之后，使用时再通过validate对比版本号；
+* 如果版本号不一致，则通过readLock升级为悲观读。
+ 
+ 另外，StampedLock中将读线程串联在一起，唤醒读线程时会一起唤醒所有的读线程，从而实现读线程间不互斥。
 
  
+### 同步工具类
  
- 
- 
- 
- 
- 
- 
- 
- 
- 
+#### Semaphore
 
+基于AQS实现，支持一定资源数量的并发访问控制。
+
+```
+Semaphore semaphore = new Semaphore(10);
+semaphore.acquire();
+semaphore.release();
+```
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/java_concurrent/java_concurrent_semaphore_uml.png)
+
+#### CountDownLatch
+
+基于AQS实现，支持state递减，直到state为0时唤醒所有阻塞的线程。
+
+```
+CountDownLatch latch = new CountDownLatch(1);
+latch.await();
+latch.countDown();
+```
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/java_concurrent/java_concurrent_countdownlatch_uml.png)
+
+#### CyclicBarrier
+CyclicBarrier基于ReentrantLock+Condition实现。
+
+如下所示，累计10个线程调用await阻塞时，即可唤醒所有线程。CyclicBarrier可重复使用。
+
+```
+CyclicBarrier cb = new CyclicBarrier(10);
+cb.await();
+```
+
+#### Exchanger
+
+用于线程间交换数据，基于CAS+park/unpark实现。
+
+
+#### Phaser
+
+Phaser可代替CountDownLatch和CyclicBarrier使用，同时有新功能：
+
+* 可动态调整要同步的线程个数。
+* 可构建有层次的Phaser。
+
+不基于AQS实现，但是也基于CAS+state变量+阻塞队列来实现。
+
+### 并发容器
 
 ![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/java_concurrent/java_concurrent_queue_uml.png)
 
+ArrayBlockingQueue，一个用数组实现的环形队列。
+
+LinkedBlockingQueue，一种基于单向链表的阻塞队列。
+
+LinkedBlockingQueue实现是线程安全的，实现了先进先出等特性，是作为生产者消费者的首选。
+
+PriorityQueue，队列通常是先进先出的，而PriorityQueue是按照元素的优先级从小到大出队列的。
+
+DelayQueue，即延迟队列，也就是一个按延迟时间从小到大出队的PriorityQueue。
+
+SynchronousQueue，先调put（..），线程会阻塞；直到另外一个线程调用了take（），两个线程才同时解锁，反之亦然。对于多个线程而言，例如3个线程，调用3次put（..），3个线程都会阻塞；直到另外的线程调用3次take（），6个线程才同时解锁，反之亦然。
+
+BlockingDeque，一个阻塞的双端队列接口。
+
+CopyOnWriteArrayList：
+
+CopyOnWrite，指在“写”的时候，不是直接“写”源数据，而是把数据拷贝一份进行修改，再通过悲观锁或者乐观锁的方式写回。那为什么不直接修改，而是要拷贝一份修改呢？这是为了在“读”的时候不加锁。
 
 
-LinkedBlockingQueue
-
-LinkedBlockingQueue实现是线程安全的，实现了先进先出等特性，是作为生产者消费者的首选，
-
-
-
-ConcurrentLinkedQueue 
+**ConcurrentLinkedQueue**
 
 ConcurrentLinkedQueue 的实现原理和AQS 内部的阻塞队列类似：同样是基于CAS，同样是通过head/tail指针记录队列头部和尾部，但还是有稍许差别。
 
@@ -328,15 +388,49 @@ ConcurrentLinkedQueue 的实现原理和AQS 内部的阻塞队列类似：同样
 
 ConcurrentLinkedQueue的size方法要遍历所有元素，比较慢，尽量使用其isEmpty方法而不要使用其size方法。
 
+**ConcurrentHashMap**
+
+HashMap通常的实现方式是“数组+链表”，这种方式被称为“拉链法”。ConcurrentHashMap在这个基本原理之上进行了各种优化，在JDK 7和JDK 8中的实现方式有很大差异。
+
+1. JDK1.7中基于Segment**分段锁**实现，每个segment是一个hashmap。
+
+每个Segment都继承自ReentrantLock，Segment的数量等于锁的数量，这些锁彼此之间相互独立，即所谓的“分段锁”。
+
+Segment的个数不能扩容，但每个Segment的内部可以扩容。
+
+好处：
+
+* 减少Hash冲突，避免一个槽里有太多元素。
+* 提高读和写的并发度。段与段之间相互独立。
+* 提供扩容的并发度。扩容的时候，不是整个ConcurrentHashMap 一起扩容，而是每个Segment独立扩容。
+
+2. JDK1.8中去掉了分段锁，所有数据都放在一个大的HashMap中；其次是引入了红黑树。
+
+如果头节点是Node类型，则尾随它的就是一个普通的链表；如果头节点是TreeNode类型，它的后面就是一颗红黑树，TreeNode是Node的子类。
+
+链表和红黑树之间可以相互转换：初始的时候是链表，当链表中的元素超过某个阈值时，把链表转换成红黑树；反之，当红黑树中的元素个数小于某个阈值时，再转换为链表。
+
+特点：
+
+* 使用红黑树，当一个槽里有很多元素时，其查询和更新速度会比链表快很多，Hash冲突的问题由此得到较好的解决。
+* 加锁的粒度，并非整个ConcurrentHashMap，而是对每个头节点分别加锁，即并发度，就是Node数组的长度，初始长度为16，和在JDK 7中初始Segment的个数相同。
+* **并发扩容**，这是难度最大的。在JDK 7中，一旦Segment的个数在初始化的时候确立，不能再更改，并发度被固定。之后只是在每个Segment内部扩容，这意味着每个Segment独立扩容，互不影响，不存在并发扩容的问题。但在JDK 8中，相当于只有1个Segment，当一个线程要扩容Node数组的时候，其他线程还要读写，因此处理过程很复杂。
+* 初始化时，多个线程的竞争通过对sizeCtl进行CAS操作实现，保证只有一个线程负责初始化。
+
+如下图为扩容的基本图示。每次扩容，会将数组长度扩大到原来的两倍。
+
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/java_concurrent/java_concurrent_concurrenthashmap_kuorong1.png)
+
+扩容时可以并发扩容，每个线程负责一段。线程在put元素时，检测到正在扩容，就可以帮助扩容。
+
+如下为多个线程并行扩容-任务划分示意图。旧数组的长度是N，每个线程扩容一段，一段的长度用变量stride（步长）来表示，transferIndex表示了整个数组扩容的进度。
+
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/java_concurrent/java_concurrent_concurrenthashmap_kuorong2.png)
+
+transferIndex是ConcurrentHashMap的一个成员变量，记录了扩容的进度。初始值为n，从大到小扩容，每次减stride个位置，最终减至n＜=0，表示整个扩容完成。
 
 
-ConcurrentHashMap
-JDK1.7中基于Segment分段锁实现，每个segment是一个hashmap。
-
-JDK1.8中去掉了分段锁，改用一个大的hashmap。
-
-
-HashMap
+**HashMap**
 
 基于红黑树实现，非线程安全。
 
@@ -345,11 +439,17 @@ HashMap
 如果在访问期间modCount发生变化，即map内部结构性变化（如发生了rehash/mapping数目变化），则会报ConcurrentModificationException。
 
 
-ConcurrentSkipListMap
+**ConcurrentSkipListMap**
+
+提供的key有序的HashMap，基于SkipList（跳查表）实现的。
+
+SkipList基于无锁链表实现节点的增加、删除。
 
 ![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/java_concurrent/java_concurrent_skiplistmap.png)
 
-线程池
+
+
+### 线程池
 
 初始化参数：
 
