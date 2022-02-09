@@ -1,6 +1,7 @@
 
 
 线程
+
 #### 进程与线程
 
 进程是代码在数据集合上的一次运行活动，是系统进行资源分配和调度的基本单位。
@@ -34,6 +35,7 @@ Thread.setDaemon(true). 即可将一个线程设置为守护线程。
 在Java中有一个规定：当所有的非守护线程退出后，整个JVM进程就会退出。意思就是守护线程“不算作数”，守护线程不影响整个JVM进程的退出。
 
 例如，垃圾回收线程就是守护线程，它们在后台默默工作，当开发者的所有前台线程（非守护线程）都退出之后，整个JVM进程就退出了。
+
 
 #### interrupt和InterruptedException
 
@@ -83,6 +85,7 @@ Thread.interrupted(),为静态函数，读取线程中断中途，同时重置�
 以wait/notify为例：在wait（）的内部，会先释放锁obj1，然后进入阻塞状态，之后，它被另外一个线程用notify（）唤醒，去重新拿锁！其次，wait（）调用完成后，执行后面的业务逻辑代码，然后退出synchronized同步块，再次释放锁。
 ![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/java_concurrent/java_concurrent_synchronized_wait.png)
 
+
 #### wait
 
 经典使用方式：
@@ -107,6 +110,7 @@ notify随机唤醒一个wait的线程，notifyAll唤醒所有wait的线程，都
 
 利用Condition或park/unpark可以实现精准唤醒。
 
+
 #### volatile与内存屏障
 
 volatile的三重功效：64位写入的原子性、内存可见性和禁止重排序。
@@ -123,6 +127,7 @@ L1、L2、L3和主内存之间是同步的，有缓存一致性协议的保证�
 
 多CPU，每个CPU多核，每个核上面可能还有多个硬件线程，对于操作系统来讲，就相当于一个个的逻辑CPU。每个逻辑CPU都有自己的缓存，这些缓存和主内存之间不是完全同步的。
 
+
 **重排序：**
 
 * 编译器重排序。对于没有先后依赖关系的语句，编译器可以重新调整语句的执行顺序。
@@ -132,6 +137,7 @@ L1、L2、L3和主内存之间是同步的，有缓存一致性协议的保证�
 无论什么语言，站在编译器和CPU的角度来说，不管怎么重排序，单线程程序的执行结果不能改变，这是单线程程序的重排序规则。
 
 而在多线程环境下，程序运行结果的确定性无法保证。
+
 
 **happen-before：**
 
@@ -151,6 +157,7 @@ A happen-before B不代表A一定在B之前执行。因为，对于多线程程�
 * 对final变量的写，happen-before于final域对象的读，happen-before于后续对final变量的读。
 另外，happen-before还具有传递性，即若A happen-before B，Bhappen-before C，则A happen-before C。
 
+
 **内存屏障：**
 
 内存屏障是JMM和happen-before的底层基础。
@@ -165,6 +172,7 @@ A happen-before B不代表A一定在B之前执行。因为，对于多线程程�
 * LoadStore：禁止读和写的重排序。
 * StoreLoad：禁止写和读的重排序。
 
+
 **volatile实现：**
 
 由于不同的CPU架构的缓存体系不一样，重排序的策略不一样，所提供的内存屏障指令也就有差异。
@@ -178,6 +186,7 @@ A happen-before B不代表A一定在B之前执行。因为，对于多线程程�
 即volatile修饰的变量，在代码中被访问之处，会根据需要插入不同的内存屏障，来实现禁止重排序的目的。
 ![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/java_concurrent/java_concurrent_volatile_base.png)
 
+
 #### 无锁编程
 
 * 一写一读的无锁队列：内存屏障
@@ -186,6 +195,32 @@ A happen-before B不代表A一定在B之前执行。因为，对于多线程程�
 * 无锁栈：对head指针进行CAS操作
 * 无锁链表：例子如ConcurrentSkipListMap
 
+
+#### ThreadLocal
+
+Thread内map threadLocals，存储每个线程的ThreadLocal值。
+
+创建一个ThreadLocal变量后，每个线程都会复制一个变量到自己的本地内存。当多个线程操作这个变量时，实际操作的是自己本地内存里面的变量，从而避免了线程安全问题。
+
+
+```
+//Thread类
+ThreadLocal.ThreadLocalMap threadLocals = null;
+```
+
+**ThreadLocalRandom：**
+
+Thread类中，有threadLocalRandomSeed和threadLocalRandomProbe变量，用于ThreadLocalRandom生成随机数。
+
+ThreadLocalRandom用于解决，Random在多线程环境下获取到的seed相同，从而生成重复随机数的问题。
+
+ThreadLocalRandom中，每个线程的seed不同，保证了生成的随机数不重复。
+
+```
+//Thread类
+long threadLocalRandomSeed;
+int threadLocalRandomProbe;
+```
 
 
 ### Atomic
@@ -282,6 +317,7 @@ AtomicLong内部是一个volatile long型变量，由多个线程对这个变量
  LongAccumulator比LongAdder功能更强大，可以定义初始值，还可以自定义二元操作。
  
  
+ 
 ### Lock与Condition
 
 #### ReentrantLock
@@ -346,6 +382,7 @@ StampedLockn内部不是基于AQS实现，而是重新实现了一个阻塞队�
  
  另外，StampedLock中将读线程串联在一起，唤醒读线程时会一起唤醒所有的读线程，从而实现读线程间不互斥。
 
+
  
 ### 同步工具类
  
@@ -394,6 +431,7 @@ Phaser可代替CountDownLatch和CyclicBarrier使用，同时有新功能：
 * 可构建有层次的Phaser。
 
 不基于AQS实现，但是也基于CAS+state变量+阻塞队列来实现。
+
 
 ### 并发容器
 
@@ -611,6 +649,7 @@ ForkJoinPool内部队列不是基于BlockingQueue实现，而是基于一个普�
 （1）整个队列是环形的，也就是一个数组实现的RingBuffer
 （2）当队列满了之后会扩容，所以被称为是动态的
 
+
 ### CompletableFuture
 
 **主要方法：**
@@ -627,13 +666,74 @@ CompletableFuture中任务的执行同样依靠ForkJoinPool。
 
 **任务的网状执行：有向无环图**
 
-任何一个多元操作，都能被转换为多个二元操作的叠加
+任何一个多元操作，都能被转换为多个二元操作的叠加。
+
+[] 内部实现？？
 
 ![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/java_concurrent/java_concurrent_completablefuture_dag.png)
 
 
+### 其他问题
+
+#### 伪共享问题
+
+
+
+### 并发编程实际问题
+
+#### ConcurrentHashMap的put（K key, V value）与putIfAbsent（K key, V value）的区别
+
+#### SimpleDateFormat是线程不安全的
+
+SimpleDateFormat其中的Calendar变量，重置、创建时没有加锁，导致多线程访问SimpleDateFormat时数据有误。
+
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/java_concurrent/java_concurrent_simpledateformat.png)
+
+替代方案：
+
+* 每次使用时new一个SimpleDateFormat的实例。代价较大。
+* 每次使用时，使用synchronized进行同步。代价大。
+* 使用ThreadLocal<DateFormat> 存储SimpleDateFormat，保证每个线程有自己的SimpleDateFormat副本，避免多线程问题。
+* jdk8下使用DateTimeFormatter代替。
+* 使用joda-time等代替。
+
+#### Timer
+
+当一个Timer运行多个TimerTask时，只要其中一个TimerTask在执行中向run方法外抛出了异常，则其他任务也会自动终止。
+
+Timer是固定的多线程生产单线程消费，但是ScheduledThreadPoolExecutor是可以配置的，既可以是多线程生产单线程消费也可以是多线程生产多线程消费。所以在日常开发中使用定时器功能时应该优先使用ScheduledThreadPoolExecutor。
+
+
+#### 对需要复用但是会被下游修改的参数要进行深复制
+
+#### 创建线程和线程池时要指定与业务相关的名称
+
+#### 使用线程池的情况下当程序结束时记得调用shutdown关闭线程池
+
+线程池默认的ThreadFactory创建的线程是用户线程，而不是守护线程。
+
+#### 线程池
+
+线程池使用FutureTask时如果把拒绝策略设置为DiscardPolicy和DiscardOldestPolicy，并且在被拒绝的任务的Future对象上调用了无参get方法，那么调用线程会一直被阻塞。
+
+当使用Future时，尽量使用带超时时间的get方法，这样即使使用了DiscardPolicy拒绝策略也不至于一直等待，超时时间到了就会自动返回。
+
+#### 使用ThreadLocal不当可能会导致内存泄漏
+
+**没有及时remove，可能出现内存泄漏：**
+
+ThreadLocalMap的Entry中的key使用的是对ThreadLocal对象的弱引用，这在避免内存泄漏方面是一个进步。因为如果是强引用，即使其他地方没有对ThreadLocal对象的引用，ThreadLocalMap中的ThreadLocal对象还是不会被回收，而如果是弱引用则ThreadLocal引用是会被回收掉的。
+
+但是对应的value还是不能被回收，这时候ThreadLocalMap里面就会存在key为null但是value不为null的entry项，虽然ThreadLocalMap提供了set、get和remove方法，可以在一些时机下对这些Entry项进行清理，但是这是不及时的，也不是每次都会执行，所以在一些情况下还是会发生内存漏，因此在使用完毕后要及时调用remove方法。
+
+
+**线程池使用ThreadLocal，可能导致内存泄漏：**
+
+如果在线程池里面设置了ThreadLocal变量，则一定要记得及时清理，因为线程池里面的核心线程是一直存在的，如果不清理，线程池的核心线程的threadLocals变量会一直持有ThreadLocal变量。
+
+
 ### 参考：
 
-《Java并发实现原理》
+《Java并发实现原理》-- 偏重jdk代码阅读及内部实现
 
-《Java并发编程之美》
+《Java并发编程之美》-- 偏重文字描述基础知识
