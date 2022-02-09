@@ -1,6 +1,23 @@
-《JAVA并发实现原理》
+
 
 线程
+#### 进程与线程
+
+进程是代码在数据集合上的一次运行活动，是系统进行资源分配和调度的基本单位。
+
+线程则是进程的一个执行路径，一个进程中至少有一个线程，进程中的多个线程共享进程的资源。
+
+操作系统在分配资源时是把资源分配给进程的，但是CPU资源比较特殊，它是被分配到线程的。
+
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/java_concurrent/java_concurrent_thread.png)
+
+堆是一个进程中最大的一块内存，堆是被进程中的所有线程共享的，是进程创建时分配的，堆里面主要存放使用new操作创建的对象实例。
+
+方法区则用来存放JVM加载的类、常量及静态变量等信息，也是线程共享的。
+
+程序计数器，是为了记录该线程让出CPU时的执行地址的，待再次分配到时间片时线程就可以从自己私有的计数器指定地址继续执行。
+
+每个线程都有自己的栈资源，用于存储该线程的局部变量，这些局部变量是该线程私有的，其他线程是访问不了的，除此之外栈还用来存放线程的调用栈帧。
 
 #### 线程的优雅关闭：
 
@@ -66,8 +83,27 @@ Thread.interrupted(),为静态函数，读取线程中断中途，同时重置�
 以wait/notify为例：在wait（）的内部，会先释放锁obj1，然后进入阻塞状态，之后，它被另外一个线程用notify（）唤醒，去重新拿锁！其次，wait（）调用完成后，执行后面的业务逻辑代码，然后退出synchronized同步块，再次释放锁。
 ![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/java_concurrent/java_concurrent_synchronized_wait.png)
 
+#### wait
+
+经典使用方式：
+
+```
+synchronized(obj) {
+	while ( 条件不满足) {
+		obj.wait();
+	}
+}
+
+synchronized(obj) {
+	obj.notify();
+}
+
+```
+
 #### notify()与notifyAll()
 notify随机唤醒一个wait的线程，notifyAll唤醒所有wait的线程，都无法实现精准唤醒。
+
+被唤醒的线程不能马上从wait方法返回并继续执行，它必须在获取了共享对象的监视器锁后才可以返回。
 
 利用Condition或park/unpark可以实现精准唤醒。
 
@@ -149,6 +185,8 @@ A happen-before B不代表A一定在B之前执行。因为，对于多线程程�
 * 多读多写的无锁队列：CAS
 * 无锁栈：对head指针进行CAS操作
 * 无锁链表：例子如ConcurrentSkipListMap
+
+
 
 ### Atomic
 
@@ -451,17 +489,62 @@ SkipList基于无锁链表实现节点的增加、删除。
 
 ### 线程池
 
-初始化参数：
+线程池的实现原理：调用方不断地向线程池中提交任务；线程池中有一组线程，不断地从队列中取任务，这是一个典型的生产者—消费者模型。
+
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/java_concurrent/java_concurrent_threadpool_uml.png)
+
+**初始化参数：**
+
+* corePoolSize：在线程池中始终维护的线程个数。
+* maxPoolSize：在corePooSize已满、队列也满的情况下，扩充线程至此值。
+* keepAliveTime/TimeUnit：maxPoolSize 中的空闲线程，销毁所需要的时间，总线程数收缩回corePoolSize。
+* blockingQueue：线程池所用的队列类型。
+* threadFactory：线程创建工厂，可以自定义，也有一个默认的。
+* RejectedExecutionHandler：corePoolSize 已满，队列已满，maxPoolSize 已满，最后的拒绝策略。
+
+**提交任务的处理流程：**
+
+* step1：判断当前线程数是否大于或等于corePoolSize。如果小于，则新建线程执行；如果大于，则进入step2。
+* step2：判断队列是否已满。如未满，则放入；如已满，则进入step3。
+* step3：判断当前线程数是否大于或等于maxPoolSize。如果小于，则新建线程执行；如果大于，则进入step4。
+* step4：根据拒绝策略，拒绝任务。
 
 线程池状态变化：
 ![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/java_concurrent/java_concurrent_threadpool_state.png)
 
 shutdown（）与shutdownNow（）的区别：
 
-线程池的4种拒绝策略：
+* 前者不会清空任务队列，会等所有任务执行完成，后者再清空任务队列。
+* 前者只会中断空闲的线程，后者会中断所有线程。
 
+线程池的关闭需要一个过程，在调用shutDown（）或者shutdownNow（）之后，线程池并不会立即关闭，接下来需要调用awaitTermination 来等待线程池关闭。
+
+
+**线程池的4种拒绝策略：**
+
+* CallerRunsPolicy，由调用者直接在自己的线程里执行，线程池不做处理；
+* AbortPolicy，线程池抛出异常；
+* DiscardPolicy，线程池直接丢弃任务；
+* DiscardOldestPolicy，线程池删除队列里最老的任务，把新任务放入队列；
+
+#### Callable与Future
+
+Callable就是一个有返回值的Runnable。
+
+ThreadPoolExecutor中利用FutureTask作为一个Adapter对象，将Callable转换为Runnable来执行。
+
+#### ScheduledThreadPoolExecutor
+
+按时间调度来执行任务。
+
+* AtFixedRate：按固定频率执行，与任务本身执行时间无关
+* WithFixedDelay：按固定间隔执行，与任务本身执行时间有关。
+
+延迟执行任务依靠的是DelayQueue。
 
 #### Executors工具类
+
+可用于创建不同类型的线程池。
 
 在《阿里巴巴Java开发手册》中，明确禁止使用Executors创建线程池，并要求开发者直接使用ThreadPoolExector或ScheduledThreadPoolExecutor进行创建。
 
@@ -470,3 +553,87 @@ shutdown（）与shutdownNow（）的区别：
 1. FixedThreadPool和SingleThreadPool，允许的队列长度为Integer.MAX_VALUE，可能会堆积大量的请求，从而导致OOM。
 2. CachedThreadPool和ScheduledThreadPool，允许创建的线程数量为Integer.MAX_VALUE，可能会创建大量的线程，从而导致OOM。
 
+
+### ForkJoinPool
+
+使用：
+```
+@Test
+public void testForkJoinPool() throws ExecutionException, InterruptedException {
+    ForkJoinPool pool = ForkJoinPool.commonPool();
+    Future<Integer> future = pool.submit(new AddAction(1, 100));
+    System.out.println("sum: " + future.get());
+}
+
+class AddAction extends RecursiveTask<Integer> {
+    int l;
+    int h;
+
+    public AddAction( int l, int h) {
+        this.l = l;
+        this.h = h;
+    }
+
+    @Override
+    protected Integer compute() {
+        int sum = 0;
+        if (l + 5 >= h){
+            for (int i = l; i<=h; i++){
+                sum  += i;
+            }
+        } else {
+            int mid = (l + h) >>> 1;
+            AddAction left = new AddAction(l, mid);
+            AddAction right = new AddAction(mid+1, h);
+            left.fork(); //把自己放入当前线程所在的局部队列中
+            right.fork(); 
+            sum = left.join() + right.join(); // join会导致线程的层层嵌套阻塞
+        }
+        return sum;
+    }
+}
+```    
+
+ForkJoinTask
+
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/java_concurrent/java_concurrent_forkjointask.png)
+
+ForkJoinPool内部结构如下图。除全局队列外，每个线程还有自己的局部队列。
+
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/java_concurrent/java_concurrent_forkjoinpool.png)
+
+**工作窃取队列**
+
+ForkJoinPool内部队列不是基于BlockingQueue实现，而是基于一个普通的数组，名为工作窃取队列，为工作窃取算法服务。
+
+工作窃取算法，是指一个Worker线程在执行完毕自己队列中的任务之后，可以窃取其他线程队列中的任务来执行，从而实现负载均衡，以防有的线程很空闲，有的线程很忙。这个过程要用到工作窃取队列。
+
+（1）整个队列是环形的，也就是一个数组实现的RingBuffer
+（2）当队列满了之后会扩容，所以被称为是动态的
+
+### CompletableFuture
+
+**主要方法：**
+
+* get，阻塞在这里，直到获取返回结果；
+* 提交任务：runAsync与supplyAsyn
+* 链式的CompletableFuture：thenRun、thenAccept和thenApply
+* CompletableFuture的组合：thenCompose与thenCombine
+* 任意个CompletableFuture的组合：allOf 和anyOf
+
+CompletableFuture不仅实现了Future接口，还实现了CompletableStage接口。
+
+CompletableFuture中任务的执行同样依靠ForkJoinPool。
+
+**任务的网状执行：有向无环图**
+
+任何一个多元操作，都能被转换为多个二元操作的叠加
+
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/java_concurrent/java_concurrent_completablefuture_dag.png)
+
+
+### 参考：
+
+《Java并发实现原理》
+
+《Java并发编程之美》
