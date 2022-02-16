@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2022-02-16T08:43:11.706Z" agent="5.0 (Macintosh)" etag="nfQ0X1y2b-NDD1xltoQ0" version="16.4.11" type="github">
+<mxfile host="app.diagrams.net" modified="2022-02-16T08:50:06.772Z" agent="5.0 (Macintosh)" etag="e7GFUOES630Kwy1Ny0gF" version="16.4.11" type="github">
   <diagram id="nO3Y4eijYxibHjGsDATa" name="Page-1">
     <mxGraphModel dx="1233" dy="809" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
       <root>
@@ -429,8 +429,11 @@
             <mxPoint x="1939.5" y="120" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="I_AKY_xcxnq37AstKkpZ-108" value="&lt;div&gt;TaskInvokable实现类&lt;br&gt;&lt;/div&gt;" style="rounded=1;html=1;fontSize=14;whiteSpace=wrap;" vertex="1" parent="1">
+        <mxCell id="I_AKY_xcxnq37AstKkpZ-108" value="StreamTask" style="rounded=1;html=1;fontSize=14;whiteSpace=wrap;" vertex="1" parent="1">
           <mxGeometry x="2043" y="80" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="I_AKY_xcxnq37AstKkpZ-120" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontFamily=Helvetica;fontSize=12;fontColor=#000000;" edge="1" parent="1" source="I_AKY_xcxnq37AstKkpZ-109" target="I_AKY_xcxnq37AstKkpZ-117">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="I_AKY_xcxnq37AstKkpZ-109" value="" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="2095" y="506" width="20" height="30" as="geometry" />
@@ -445,6 +448,27 @@
           <mxGeometry width="50" height="50" relative="1" as="geometry">
             <mxPoint x="2102.973214285714" y="385" as="sourcePoint" />
             <mxPoint x="2102.5" y="120" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="I_AKY_xcxnq37AstKkpZ-115" value="runMailboxLoop" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;fontFamily=Helvetica;fontColor=#000000;" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="2180" y="522" as="geometry" />
+        </mxCell>
+        <mxCell id="I_AKY_xcxnq37AstKkpZ-116" value="MailboxProcessor" style="rounded=1;html=1;fontSize=14;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="2197" y="80" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="I_AKY_xcxnq37AstKkpZ-117" value="" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2249" y="506" width="20" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="I_AKY_xcxnq37AstKkpZ-118" value="" style="endArrow=none;dashed=1;html=1;rounded=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" target="I_AKY_xcxnq37AstKkpZ-117">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="2257" y="900" as="sourcePoint" />
+            <mxPoint x="2296.5" y="120" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="I_AKY_xcxnq37AstKkpZ-119" value="" style="endArrow=none;dashed=1;html=1;rounded=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=none;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" parent="1" source="I_AKY_xcxnq37AstKkpZ-117">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="2256.973214285714" y="385" as="sourcePoint" />
+            <mxPoint x="2256.5" y="120" as="targetPoint" />
           </mxGeometry>
         </mxCell>
       </root>
