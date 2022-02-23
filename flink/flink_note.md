@@ -27,3 +27,8 @@ Flink自主内存管理，包括内存管理、定制的序列化工具、缓存
 
 * HashMapStateBackend
 * EmbeddedRocksDBStateBackend
+
+### 参考
+
+[Data exchange between tasks](https://cwiki.apache.org/confluence/display/FLINK/Data+exchange+between+tasks)
+
