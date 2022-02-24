@@ -120,6 +120,7 @@ LocalBufferPool
 // Server端channel handler
 public ChannelHandler[] getServerChannelHandlers() {
     PartitionRequestQueue queueOfPartitionQueues = new PartitionRequestQueue();
+    // 上游主要逻辑
     PartitionRequestServerHandler serverHandler =
             new PartitionRequestServerHandler(
                     partitionProvider, taskEventPublisher, queueOfPartitionQueues);
@@ -134,6 +135,7 @@ public ChannelHandler[] getServerChannelHandlers() {
 
 // Client端channel handler
 public ChannelHandler[] getClientChannelHandlers() {
+	// 下游主要逻辑
     NetworkClientHandler networkClientHandler = new CreditBasedPartitionRequestClientHandler();
 
     return new ChannelHandler[] {
@@ -144,12 +146,30 @@ public ChannelHandler[] getClientChannelHandlers() {
 }
 ```
 
-从中可以看出，负责发送数据的主要逻辑位于PartitionRequestServerHandler。负责接收数据的主要逻辑位于CreditBasedPartitionRequestClientHandler，使用基于**credit**的流控机制。
+从中可以看出，使用基于**credit**的流控机制。
+
+负责发送数据的主要逻辑位于PartitionRequestServerHandler。
+
+负责接收数据的主要逻辑位于CreditBasedPartitionRequestClientHandler。
 
 #### NettyConnectionManager
 
 负责管理Netty连接，包括创建NettyServer、NettyClient及NettyBufferPool。
 
+NettyServer在启动时会配置**水位线**，如果Netty输出缓冲中的字节数超过了高水位值，会等到其降到低水位值一下才继续写入数据。
+
+#### NetworkBufferPool
+
+固定大小的MemorySegment池。
+
+ * NetworkBufferPool创建LocalBufferPool，task从LocalBufferPool中获取buffer。
+ * 当新的local buffer创建后，NetworkBufferPool动态地重新分配buffer给所有pool。
+ * 每个task有一个LocalBufferPool，整个TaskManager中只有一个NetworkBufferPool，LocalBufferPool由NetworkBufferPool管理。
+
+#### LocalBufferPool
+
+负责管理从NetworkBufferPool得到的一批buffer。
+每个task有一个LocalBufferPool，整个TaskManager中只有一个NetworkBufferPool。
 
 ## 主要流程
 
@@ -268,7 +288,7 @@ Spout端监听zookeeper上状态变化，检测到有反压时，就停止发送
 
 ## 总结
 
-
+本文主要介绍了Task之间数据交换机制，以及反压机制的发展。
 
 ## 参考
 
