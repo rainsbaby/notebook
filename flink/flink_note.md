@@ -1,5 +1,13 @@
 在集群中，每个TaskManager都是一个单独的进程（非MiniCluster模式）。TaskManager为每个Task分配独立的执行线程。
 
+### StreamElement
+
+在流中传输的数据主要有StreamElement和Event，它们的主要类别如下。
+
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/flink/flink_StreamElement_uml.png)
+
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/flink/flink_RuntimeEvent_uml.png)
+
 
 ### 内存管理
 
@@ -45,12 +53,77 @@ ResourceManager对所有TaskExecutor中的slot进行管理。
 
 ![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/flink/flink_statebackend_uml.png)
 
-主要有两种类型的StateBackend：
+定义流式应用的状态如何在集群内存储。主要有两种类型的StateBackend：
 
-* HashMapStateBackend
-* EmbeddedRocksDBStateBackend
+ * HashMapStateBackend在TaskManager的内存中存储state，轻量级且没有额外的依赖。
+ * EmbeddedRocksDBStateBackend在RocksDB中存储state，能够存储大量的数据，只受限于TaskManager的磁盘容量。
+ 
+Flink 中的状态分为Keyed State 和 Operator State。 Keyed State 是和具体的 Key 相绑定的，只能在 KeyedStream 上的函数和算子中使用。 Opeartor State 则是和 Operator 的一个特定的并行实例相绑定的，
+
+StateBackend接口创建的CheckpointableKeyedStateBackend和OperatorStateBackend，定义了key state和operator state的存储方式。同时定义了如何checkpoint state。
+ 
+### Timestamp和Watermark
+#### 1.Timestamp和Watermark在source端生成
+
+接口为SourceFunction.SourceContext。
+
+工厂类为StreamSourceContexts，根据不同的系统时间属性，选择不同的SourceContext。
+
+* 若选择TimeCharacteristic.EventTime，则由ManualWatermarkContext生成Watermark。
+* 若选择IngestionTime，则由AutomaticWatermarkContext自动定时生成Watermark，发送给下游。
+* 若选择ProcessingTime，则由NonTimestampContext忽略时间戳和watermark。
+
+#### 2.Timestamp和Watermark在流中间生成
+使用：DataStream中assignTimestampsAndWatermarks等。生成的Transformation中包含WatermarkStrategy，WatermarkStrategy实现了TimestampAssignerSupplier和WatermarkGeneratorSupplier。
+
+通过 Timestamp Assigners / Watermark Generators 来生成事件时间和 watermark，一般是从消息中提取出时间字段。
+
+#### TimerService
+提供定时触发功能，用于定时生成watermark等。
+
+### Window
+Window的主要处理逻辑，即对应Operator主要有WindowOperator，其中包含WindowAssigner、Evictor、Trigger等。
+
+从WindowOperator可以看出，当消息到达时，在窗口算子中的主要处理流程如下：
+
+* 通过 WindowAssigner 确定消息所在的窗口（可能属于多个窗口）
+* 将消息加入到对应窗口的状态中
+* 根据 Trigger.onElement 确定是否应该触发窗口结果的计算，如果使用 InternalWindowFunction 对窗口进行处理
+* 注册一个定时器，在窗口结束时清理窗口状态
+* 如果消息太晚到达，提交到 side output 中
+
+#### WindowAssigner
+为element分配0或多个窗口。
+
+#### Evictor
+在调用Trigger后，在WindowFunction计算前/后从pane中移除element。
+
+#### Trigger
+
+决定一个窗口何时关闭进行计算。
+ 
+ WindowOperator端，处理element时调用onElement等方法进行判断。
+
+### 双流操作
+
+#### Window Join and CoGroup
+
+Window Join 操作，顾名思义，是基于时间窗口对两个流进行关联操作。相比于 Join 操作， CoGroup 提供了一个更为通用的方式来处理两个流在相同的窗口内匹配的元素。 Join 复用了 CoGroup 的实现逻辑。
+
+JoinFunction 主要关注的是两个流中按照 key 匹配的每一对元素，而 CoGroupFunction 的参数则是两个中 key 相同的所有元素。JoinFunction 的逻辑更类似于 INNER JOIN，而 CoGroupFunction 除了可以实现 INNER JOIN，也可以实现 OUTER JOIN。
+
+#### Connected Streams
+
+更为通用的双流操作。
+
+#### Interval Join
+
+Window Join 的一个局限是关联的两个数据流必须在同样的时间窗口中。
+
+但有些时候，我们希望在一个数据流中的消息到达时，在另一个数据流的一段时间内去查找匹配的元素。更确切地说，如果数据流 b 中消息到达时，我们希望在数据流 a 中匹配的元素的时间范围为 a.timestamp + lowerBound <= b.timestamp <= a.timestamp + upperBound；同样，对数据流 a 中的消息也是如此。在这种情况，就可以使用 Interval Join。
 
 ### 参考
 
+[异步IO](https://nightlies.apache.org/flink/flink-docs-release-1.14/docs/dev/datastream/operators/asyncio/)
 
 

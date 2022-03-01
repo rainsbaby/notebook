@@ -109,7 +109,20 @@ Checkpoint 执行详细流程如下。
 * ExecutionGraph转发acknowledgement给CheckpointCoordinator；
 * CheckpointCoordinator处理acknowledgement，并维护checkpoint总体状态；
 
+### Checkpoint 存储
 
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/flink/flink_CheckpointStorage_uml.png)
+
+CheckpointStorage 是对状态存储系统的抽象，它有两个实现，MemoryBackendCheckpointStorage 和 FsCheckpointStorage。
+
+* MemoryBackendCheckpointStorage 将所有算子的检查点状态存储在 JobManager 的内存中，通常不适合在生产环境中使用；
+* FsCheckpointStorage 则会把所有算子的检查点状态持久化存储在文件系统中。
+
+### 本地状态存储
+
+在存储检查点快照时，在 Task 所在的 TaskManager 本地文件系统中存储一份副本，这样在进行状态恢复时可以优先从本地状态进行恢复，从而减少网络数据传输的开销。
+
+本地状态存储仅针对 keyed state。
 
 ## 基于 Checkpoint 的恢复
 
