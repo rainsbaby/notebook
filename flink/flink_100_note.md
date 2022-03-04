@@ -1,4 +1,9 @@
+
+[toc]
+
 在集群中，每个TaskManager都是一个单独的进程（非MiniCluster模式）。TaskManager为每个Task分配独立的执行线程。
+
+源码版本：Flink 1.14。
 
 ### StreamElement
 
@@ -61,28 +66,12 @@ ResourceManager对所有TaskExecutor中的slot进行管理。
 Flink 中的状态分为Keyed State 和 Operator State。 Keyed State 是和具体的 Key 相绑定的，只能在 KeyedStream 上的函数和算子中使用。 Opeartor State 则是和 Operator 的一个特定的并行实例相绑定的，
 
 StateBackend接口创建的CheckpointableKeyedStateBackend和OperatorStateBackend，定义了key state和operator state的存储方式。同时定义了如何checkpoint state。
- 
-### Timestamp和Watermark
-#### 1.Timestamp和Watermark在source端生成
 
-接口为SourceFunction.SourceContext。
 
-工厂类为StreamSourceContexts，根据不同的系统时间属性，选择不同的SourceContext。
 
-* 若选择TimeCharacteristic.EventTime，则由ManualWatermarkContext生成Watermark。
-* 若选择IngestionTime，则由AutomaticWatermarkContext自动定时生成Watermark，发送给下游。
-* 若选择ProcessingTime，则由NonTimestampContext忽略时间戳和watermark。
-
-#### 2.Timestamp和Watermark在流中间生成
-使用：DataStream中assignTimestampsAndWatermarks等。生成的Transformation中包含WatermarkStrategy，WatermarkStrategy实现了TimestampAssignerSupplier和WatermarkGeneratorSupplier。
-
-通过 Timestamp Assigners / Watermark Generators 来生成事件时间和 watermark，一般是从消息中提取出时间字段。
-
-#### TimerService
-提供定时触发功能，用于定时生成watermark等。
 
 ### Window
-Window的主要处理逻辑，即对应Operator主要有WindowOperator，其中包含WindowAssigner、Evictor、Trigger等。
+Window的主要处理逻辑，即对应Operator主要有WindowOperator，其中包含WindowAssigner、Evictor、Trigger等，主要逻辑位于processElement()。
 
 从WindowOperator可以看出，当消息到达时，在窗口算子中的主要处理流程如下：
 
@@ -104,6 +93,7 @@ Window的主要处理逻辑，即对应Operator主要有WindowOperator，其中�
  
  WindowOperator端，处理element时调用onElement等方法进行判断。
 
+
 ### 双流操作
 
 #### Window Join and CoGroup
@@ -122,8 +112,99 @@ Window Join 的一个局限是关联的两个数据流必须在同样的时间�
 
 但有些时候，我们希望在一个数据流中的消息到达时，在另一个数据流的一段时间内去查找匹配的元素。更确切地说，如果数据流 b 中消息到达时，我们希望在数据流 a 中匹配的元素的时间范围为 a.timestamp + lowerBound <= b.timestamp <= a.timestamp + upperBound；同样，对数据流 a 中的消息也是如此。在这种情况，就可以使用 Interval Join。
 
+
+
+### 异步I/O
+
+#### 作用
+
+处理实时数据时，有时需要从外部查询数据，如外表维表数据。在外部查询较慢的情况下，如果采用同步调用，会严重影响系统的吞吐量。
+
+虽然可以通过增加并行度的方式，来提升系统吞吐量，但是也会增加系统的资源需求。
+
+因此可以采用异步调用的方式，调用外部接口，从而提升系统的吞吐量。
+
+#### 使用方式：
+
+```
+class AsyncDatabaseRequest extends RichAsyncFunction<String, Tuple2<String, String>> {
+
+    /** The database specific client that can issue concurrent requests with callbacks */
+    private transient DatabaseClient client;
+
+    @Override
+    public void open(Configuration parameters) throws Exception {
+        client = new DatabaseClient(host, post, credentials);
+    }
+
+    @Override
+    public void close() throws Exception {
+        client.close();
+    }
+
+    @Override
+    public void asyncInvoke(String key, final ResultFuture<Tuple2<String, String>> resultFuture) throws Exception {
+
+        // issue the asynchronous request, receive a future for result
+        final Future<String> result = client.query(key);
+
+        // set the callback to be executed once the request by the client is complete
+        // the callback simply forwards the result to the result future
+        CompletableFuture.supplyAsync(new Supplier<String>() {
+            @Override
+            public String get() {
+                try {
+                    return result.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    // Normally handled explicitly.
+                    return null;
+                }
+            }
+        }).thenAccept( (String dbResult) -> {
+            resultFuture.complete(Collections.singleton(new Tuple2<>(key, dbResult)));
+        });
+    }
+}
+
+// create the original stream
+DataStream<String> stream = ...;
+
+// apply the async I/O transformation
+DataStream<Tuple2<String, String>> resultStream =
+    AsyncDataStream.unorderedWait(stream, new AsyncDatabaseRequest(), 1000, TimeUnit.MILLISECONDS, 100);
+
+```
+
+#### 内部原理：
+
+对应Operator为AsyncWaitOperator，Function基类为AsyncFunction。
+
+**AsyncWaitOperator：**
+
+AsyncWaitOperator中利用StreamElementQueue队列，存储处理中的element。
+
+* element到达时，首先将其放入队列中，然后发起异步调用。异步调用的回调（ResultHandler）中，将结果更新到队列中对应entry，并输出队列中所有已完成的element；
+* watermark到达时，先放入队列中，然后输出队列中所有已完成的element到下游。因为watermark到达时，表示没有更早的element，所以可以输出队列中所有已完成的element。
+
+进行快照时，需要将队列记录到state中，包括异步调用没有完成，以及还没有发送给下游的消息。在恢复到时候，可以取出队列消息，再重新处理一遍。
+
+
+
+### 序列化与反序列化
+
+可以看出StreamGraph、JobGraph、ExecutionGraph中，operator、userFunction等会从Client传递给JobManager，再传递给TaskManager端进行执行，因此需要序列化反序列化。
+
+从代码里也可以看出，它们就实现了Serializable接口。
+
+
 ### 参考
 
-[异步IO](https://nightlies.apache.org/flink/flink-docs-release-1.14/docs/dev/datastream/operators/asyncio/)
+[Generating Watermarks](https://nightlies.apache.org/flink/flink-docs-release-1.14/docs/dev/datastream/event-time/generating_watermarks/)
+
+[异步I/O](https://nightlies.apache.org/flink/flink-docs-release-1.14/docs/dev/datastream/operators/asyncio/)
+
+[异步I/O 设计和实现](https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=65870673)
+
+
 
 
