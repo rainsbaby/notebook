@@ -196,6 +196,45 @@ AsyncWaitOperator中利用StreamElementQueue队列，存储处理中的element�
 
 从代码里也可以看出，它们就实现了Serializable接口。
 
+Flink实现了自己的序列化框架。因为在 Flink 中处理的数据流通常是同一类型，由于数据集对象的类型固定，对于数据集可以只保存一份对象Schema信息，节省大量的存储空间。同时，对于固定大小的类型，也可通过固定的偏移位置存取。当我们需要访问某个对象成员变量的时候，通过定制的序列化工具，并不需要反序列化整个Java对象，而是可以直接通过偏移量，只是反序列化特定的对象成员变量。如果对象的成员变量较多时，能够大大减少Java对象的创建开销，以及内存数据的拷贝大小。
+
+使用各类数据类型时，Flink会自动探测传入的数据类型，生成对应的TypeInformation，调用对应的序列化器，因此用户其实无需关心类型推测。
+
+Flink支持任意的Java或是Scala类型。Flink 在数据类型上有很大的进步，不需要实现一个特定的接口（像Hadoop中的org.apache.hadoop.io.Writable），Flink 能够**自动识别数据类型**。Flink 通过 Java Reflection 框架分析基于 Java 的 Flink 程序 UDF (User Define Function)的返回类型的类型信息，通过 Scala Compiler 分析基于 Scala 的 Flink 程序 UDF 的返回类型的类型信息。类型信息由 TypeInformation 类表示，TypeInformation 支持以下几种类型：
+
+    BasicTypeInfo: 任意Java 基本类型（装箱的）或 String 类型。
+    BasicArrayTypeInfo: 任意Java基本类型数组（装箱的）或 String 数组。
+    WritableTypeInfo: 任意 Hadoop Writable 接口的实现类。
+    TupleTypeInfo: 任意的 Flink Tuple 类型(支持Tuple1 to Tuple25)。Flink tuples 是固定长度固定类型的Java Tuple实现。
+    CaseClassTypeInfo: 任意的 Scala CaseClass(包括 Scala tuples)。
+    PojoTypeInfo: 任意的 POJO (Java or Scala)，例如，Java对象的所有成员变量，要么是 public 修饰符定义，要么有 getter/setter 方法。
+    GenericTypeInfo: 任意无法匹配之前几种类型的类。
+
+前六种数据类型基本上可以满足绝大部分的Flink程序，针对前六种类型数据集，Flink皆可以自动生成对应的TypeSerializer，能非常高效地对数据集进行序列化和反序列化。
+
+对于最后一种数据类型，Flink会使用Kryo进行序列化和反序列化。
+
+每个TypeInformation中，都包含了serializer，类型会自动通过serializer进行序列化，然后用Java Unsafe接口写入MemorySegments。
+
+对于可以用作key的数据类型，Flink还同时自动生成TypeComparator，用来辅助直接对序列化后的二进制数据进行compare、hash等操作。
+
+对于 Tuple、CaseClass、POJO 等组合类型，其TypeSerializer和TypeComparator也是组合的，序列化和比较时会委托给对应的serializers和comparators。
+
+
+#### TypeInformation
+
+在Flink中，统一使用TypeInformation类表示。TypeInformation的一个重要的功能就是创建TypeSerializer序列化器，为该类型的数据做序列化。每种类型都有一个对应的序列化器来进行序列化。
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/flink/flink_TypeInformation_uml.png)
+
+
+#### TypeSerializer
+
+TypeSerializer即序列化器，定义了某个数据类型对应的序列化反序列化和copy方法。
+
+因此序列化流程可以简单总结为，根据对象类型可得到对应的TypeInformation，由TypeInformation创建对应的TypeSerializer，之后画即可进行序列化工作。
+
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/flink/flink_TypeSerializer_uml.png)
+
 
 ### 参考
 
