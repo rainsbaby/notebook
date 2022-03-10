@@ -339,9 +339,112 @@ Log Compaction执行过后的日志分段的大小会比原先的日志分段的
 可能的问题：日志清理时，会使用MD5计算key的hash值，放入SkimpyOffsetMap中。但是MD5会有小概率出现hash值冲突，即两个不同的key但是hash值相同，从而导致其中一个key对应的消息丢失。
 
 
-
-
 ### 磁盘存储
+
+#### 消息追加
+Kafka 在设计时采用了文件追加的方式来写入消息，即只能在日志文件的尾部追加新的消息，并且也不允许修改已写入的消息，这种方式属于典型的顺序写盘的操作，所以就算 Kafka使用磁盘作为存储介质，它所能承载的吞吐量也能达到很大。
+
+#### 页缓存
+
+页缓存是操作系统实现的一种主要的磁盘缓存，以此用来减少对磁盘 I/O 的操作。具体来说，就是把磁盘中的数据缓存到内存中，把对磁盘的访问变为对内存的访问。
+
+当一个进程准备读取磁盘上的文件内容时，操作系统会先查看待读取的数据所在的页（page）是否在页缓存（pagecache）中，如果存在（命中）则直接返回数据，从而避免了对物理磁盘的 I/O 操作；如果没有命中，则操作系统会向磁盘发起读取请求并将读取的数据页存入页缓存，之后再将数据返回给进程。
+
+同样，如果一个进程需要将数据写入磁盘，那么操作系统也会检测数据对应的页是否在页缓存中，如果不存在，则会先在页缓存中添加相应的页，最后将数据写入对应的页。被修改过后的页也就变成了脏页，操作系统会在合适的时间把脏页中的数据写入磁盘，以保持数据的一致性。
+
+使用文件系统并依赖于页缓存的做法明显要优于维护一个进程内缓存或其他结构，至少我们可以省去了一份进程内部的缓存消耗，同时还可以通过结构紧凑的字节码来替代使用对象的方式以节省更多的空间。
+
+#### 零拷贝
+
+零拷贝是指将数据直接从磁盘文件复制到网卡设备中，而不需要经由应用程序之手。
+
+提高了应用程序的性能，减少了内核和用户模式之间的上下文切换。对 Linux操作系统而言，零拷贝技术依赖于底层的 sendfile（）方法实现。对应于 Java 语言，FileChannal.transferTo（）方法的底层实现就是sendfile（）方法。
+
+读取文件，并通过socket发送给用户，文件A经历了4次复制的过程：
+
+* 调用read（）时，文件A中的内容被复制到了内核模式下的Read Buffer中。
+* CPU控制将内核模式数据复制到用户模式下。
+* 调用write（）时，将用户模式下的内容复制到内核模式下的Socket Buffer中。
+* 将内核模式下的Socket Buffer的数据复制到网卡设备中传送。
+
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/kafka/kafka_io_readfile.png)
+
+如果采用了零拷贝技术，那么应用程序可以直接请求内核把磁盘中的数据传输给 Socket。
+
+零拷贝技术通过DMA（Direct Memory Access）技术将文件内容复制到内核模式下的Read Buffer中。不过没有数据被复制到 Socket Buffer，相反只有包含数据的位置和长度的信息的文件描述符被加到Socket Buffer中。DMA引擎直接将数据从内核模式中传递到网卡设备（协议引擎）。这里数据只经历了2次复制就从磁盘中传送出去了，并且上下文切换也变成了2次。零拷贝是针对内核模式而言的，数据在内核模式下实现了零拷贝。
+
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/kafka/kafka_io_readfile_zerocopy.png)
+
+_总结：Kafka利用日志顺序追加、页缓存和零拷贝技术，保证了数据的高速读写。_
+
+
+
+
+## 服务端
+
+### 协议设计
+
+Kafka自定义了一组基于TCP的二进制协议，只要遵守这组协议的格式，就可以向Kafka发送消息，也可以从Kafka中拉取消息，或者做一些其他的事情，比如提交消费位移等。
+
+
+### 时间轮
+
+Kafka中存在大量的延时操作，比如延时生产、延时拉取和延时删除等。Kafka并没有使用JDK自带的Timer或DelayQueue来实现延时的功能，而是基于时间轮的概念自定义实现了一个用于延时功能的定时器（SystemTimer）。
+
+DK中Timer和DelayQueue的插入和删除操作的平均时间复杂度为O（nlogn）并不能满足Kafka的高性能要求，而基于时间轮可以将插入和删除操作的时间复杂度都降为O（1）。时间轮的应用并非Kafka独有，其应用场景还有很多，在Netty、Akka、Quartz、ZooKeeper等组件中都存在时间轮的踪影。
+
+Kafka中的时间轮（TimingWheel）是一个存储定时任务的环形队列，底层采用数组实现，数组中的每个元素可以存放一个定时任务列表（TimerTaskList）。TimerTaskList是一个环形的双向链表，链表中的每一项表示的都是定时任务项（TimerTaskEntry），其中封装了真正的定时任务（TimerTask）。
+
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/kafka/kafka_server_timingwheel.png)
+
+
+Kafka有层级时间轮，当任务的到期时间超过了当前时间轮所表示的时间范围时，就会尝试添加到上层时间轮中。
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/kafka/kafka_server_timingwheel_levels.png)
+
+Kafka 中的 TimingWheel 专门用来执行插入和删除 TimerTaskEntry的操作，而 DelayQueue 专门负责时间推进的任务。
+
+
+### 延时操作
+
+在将消息写入 leader 副本的本地日志文件之后，Kafka会创建一个延时的生产操作（DelayedProduce），用来处理消息正常写入所有副本或超时的情况，以返回相应的响应结果给客户端。
+
+延时操作创建之后会被加入延时操作管理器（DelayedOperationPurgatory）来做专门的处理。
+
+每个延时操作管理器都会配备一个定时器（SystemTimer）来做超时管理，定时器的底层就是采用时间轮（TimingWheel）实现的。
+
+### 控制器
+
+在 Kafka 集群中会有一个或多个 broker，其中有一个 broker 会被选举为控制器（KafkaController），它负责管理整个集群中所有分区和副本的状态。当某个分区的leader副本出现故障时，由控制器负责为该分区选举新的leader副本。当检测到某个分区的ISR集合发生变化时，由控制器负责通知所有broker更新其元数据信息。
+
+Kafka中的控制器选举工作依赖于ZooKeeper。
+
+具备控制器身份的broker比其他普通的broker多一份职责:
+
+* 监听分区相关的变化
+* 监听主题相关的变化
+* 监听broker相关的变化。
+* 从ZooKeeper中读取获取当前所有与主题、分区及broker有关的信息并进行相应的管理。
+* 启动并管理分区状态机和副本状态机
+* 更新集群的元数据信息
+* 如果参数 auto.leader.rebalance.enable 设置为 true，则还会开启一个名为“auto-leader-rebalance-task”的定时任务来负责维护分区的优先副本的均衡。
+
+控制器在选举成功之后会读取 ZooKeeper 中各个节点的数据来初始化上下文信息（ControllerContext），并且需要管理这些上下文信息。
+
+#### 分区Leader的选举
+
+分区leader副本的选举由控制器负责具体实施。当创建分区（创建主题或增加分区都有创建分区的动作）或分区上线（比如分区中原先的leader副本下线，此时分区需要选举一个新的leader 上线来对外提供服务）的时候都需要执行 leader 的选举动作。
+
+创建分区、分区上线/下线、分区重分配、优先副本选举时，会有不同的选举策略。
+
+
+## 客户端
+
+
+
+
+
+
+
 
 
 
