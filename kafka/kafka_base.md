@@ -1,4 +1,4 @@
-[toc]
+
 
 ## 介绍
 
@@ -650,7 +650,7 @@ follower的同步状态可能落后leader很多，甚至还可能处于宕机状
 
 	这种方案有一定的延时误差，无法做到秒级别的精确延时。适合对延时精度要求不高的场景。
 	
-	![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/kafka/kafka_delay_queue_delaytopic.png)	
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/kafka/kafka_delay_queue_delaytopic.png)	
 2. 在Kafka服务中增加一个**前置缓存**，生产者还是正常将消息发往Kafka中，Kafka在判定消息是延时消息时（可以增加一个自定义协议，与发送普通消息的PRODUCE协议分开，比如DELAY_PRODUCE，作为发送延时消息的专用协议）就将消息封装成延时操作并暂存至缓存中，待延时操作触发时就会将消息发送到真实的主题中。为了保证消息可靠性，要引入缓存多副本的机制。
 	
 	可以实现高精度的延时，但是要修改kafka内核代码。
