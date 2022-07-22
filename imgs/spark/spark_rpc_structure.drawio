@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2022-07-22T08:49:37.245Z" agent="5.0 (Macintosh)" etag="k9U4D9QSERAkx1sgDkx2" version="20.1.2" type="github">
+<mxfile host="app.diagrams.net" modified="2022-07-22T08:52:38.809Z" agent="5.0 (Macintosh)" etag="r8EKwoqROnSRcNplQHLw" version="20.1.2" type="github">
   <diagram id="L_72mHtXGsl8VxQXnzk-" name="第 1 页">
     <mxGraphModel dx="6225" dy="809" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="5000" pageHeight="3000" math="0" shadow="0">
       <root>
@@ -85,6 +85,11 @@
         </mxCell>
         <mxCell id="AA2X15LhDrR79P4r6UhD-32" value="Network" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
           <mxGeometry x="-3320" y="573" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="AA2X15LhDrR79P4r6UhD-39" value="Netty" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="-3380" y="620" as="geometry">
+            <mxPoint x="-4" y="-3" as="offset" />
+          </mxGeometry>
         </mxCell>
       </root>
     </mxGraphModel>
