@@ -47,6 +47,15 @@ examples/src/main/resources/people.txt
 
 ![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/spark/spark_structure.png)
 
+## Standalone模式
+
+Master
+
+Worker
+
+SparkSubmit
+
+
 ## High Availability
 
 
