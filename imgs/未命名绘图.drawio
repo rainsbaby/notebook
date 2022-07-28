@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2022-07-28T03:20:14.949Z" agent="5.0 (Macintosh)" etag="Bszzwq22uRaXRqqxV4VG" version="20.2.2" type="github">
+<mxfile host="app.diagrams.net" modified="2022-07-28T03:29:12.075Z" agent="5.0 (Macintosh)" etag="lZHxWxjv_Ry4DmyyjflV" version="20.2.2" type="github">
   <diagram id="CeCopZ57XutGNWPnh-LS" name="第 1 页">
     <mxGraphModel dx="1233" dy="769" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="5000" pageHeight="3000" math="0" shadow="0">
       <root>
@@ -173,13 +173,31 @@
           <mxGeometry x="818" y="320" width="60" height="30" as="geometry" />
         </mxCell>
         <mxCell id="vZhKyE0ab3SvKGll4aXr-55" value="" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;" vertex="1" parent="1">
-          <mxGeometry x="680" y="170" width="420" height="1" as="geometry" />
+          <mxGeometry x="764" y="172" width="336" height="1" as="geometry" />
         </mxCell>
         <mxCell id="vZhKyE0ab3SvKGll4aXr-56" value="" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;" vertex="1" parent="1">
-          <mxGeometry x="80" y="171" width="420" height="1" as="geometry" />
+          <mxGeometry x="164" y="170" width="336" height="1" as="geometry" />
         </mxCell>
         <mxCell id="vZhKyE0ab3SvKGll4aXr-57" value="挂杆" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
           <mxGeometry x="234" y="172" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="vZhKyE0ab3SvKGll4aXr-58" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="680" y="416" width="84" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="vZhKyE0ab3SvKGll4aXr-59" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="680" y="352" width="84" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="vZhKyE0ab3SvKGll4aXr-60" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="680" y="288" width="84" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="vZhKyE0ab3SvKGll4aXr-61" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="680" y="224" width="84" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="vZhKyE0ab3SvKGll4aXr-62" value="32" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="647" y="435.5" width="40" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="vZhKyE0ab3SvKGll4aXr-63" value="放行李箱" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="20" y="320" width="50" height="25" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
