@@ -1,11 +1,11 @@
-<mxfile host="app.diagrams.net" modified="2022-08-17T08:11:03.815Z" agent="5.0 (Macintosh)" etag="XMY1PpYhAlLX0S6MRT67" version="20.2.4" type="github">
+<mxfile host="app.diagrams.net" modified="2022-08-17T08:15:41.513Z" agent="5.0 (Macintosh)" etag="4jQjWo1IOcMo3lsqtFf8" version="20.2.4" type="github">
   <diagram id="_q_qoPf5iF__JWXAj1EO" name="第 1 页">
     <mxGraphModel dx="1219" dy="795" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="3000" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="a9wK_YQizOPtXQPwn90Y-25" value="" style="rounded=1;whiteSpace=wrap;html=1;fontSize=18;" vertex="1" parent="1">
-          <mxGeometry x="180" y="570" width="1020" height="350" as="geometry" />
+          <mxGeometry x="180" y="580" width="1020" height="340" as="geometry" />
         </mxCell>
         <mxCell id="a9wK_YQizOPtXQPwn90Y-24" value="" style="rounded=1;whiteSpace=wrap;html=1;fontSize=18;" vertex="1" parent="1">
           <mxGeometry x="185" y="100" width="1020" height="390" as="geometry" />
@@ -89,13 +89,19 @@
           <mxGeometry x="1040" y="429" width="110" height="30" as="geometry" />
         </mxCell>
         <mxCell id="a9wK_YQizOPtXQPwn90Y-27" value="Executor端" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;" vertex="1" parent="1">
-          <mxGeometry x="1040" y="580" width="110" height="30" as="geometry" />
+          <mxGeometry x="1040" y="587" width="110" height="30" as="geometry" />
         </mxCell>
         <mxCell id="a9wK_YQizOPtXQPwn90Y-32" style="edgeStyle=orthogonalEdgeStyle;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;fontSize=18;startArrow=none;startFill=0;" edge="1" parent="1" source="a9wK_YQizOPtXQPwn90Y-5" target="a9wK_YQizOPtXQPwn90Y-17">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="a9wK_YQizOPtXQPwn90Y-31" style="edgeStyle=orthogonalEdgeStyle;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=18;startArrow=classic;startFill=1;endArrow=none;endFill=0;" edge="1" parent="1" source="a9wK_YQizOPtXQPwn90Y-5" target="a9wK_YQizOPtXQPwn90Y-17">
           <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a9wK_YQizOPtXQPwn90Y-34" value="注册BlockManager、上报/获取block信息" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;" vertex="1" parent="1">
+          <mxGeometry x="850" y="510" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="a9wK_YQizOPtXQPwn90Y-35" value="传输block数据" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;" vertex="1" parent="1">
+          <mxGeometry x="328" y="512" width="160" height="30" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
