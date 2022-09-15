@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2022-09-15T08:40:39.673Z" agent="5.0 (Macintosh)" etag="N2at3H4974IXEFhZLpuY" version="20.2.8" type="github">
+<mxfile host="app.diagrams.net" modified="2022-09-15T08:48:18.637Z" agent="5.0 (Macintosh)" etag="xBKiTzgy8TGPpXXhuiKL" version="20.2.8" type="github">
   <diagram id="VZECOMdQH2uVjotrN1ua" name="第 1 页">
     <mxGraphModel dx="1621" dy="1060" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="3000" math="0" shadow="0">
       <root>
@@ -11,13 +11,13 @@
           <mxGeometry x="70" y="290" width="280" height="60" as="geometry" />
         </mxCell>
         <mxCell id="XDiT6CNxHAlSE8s8ffrH-3" value="Driver" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;" vertex="1" parent="1">
-          <mxGeometry x="280" y="690" width="60" height="30" as="geometry" />
+          <mxGeometry x="410" y="690" width="60" height="30" as="geometry" />
         </mxCell>
         <mxCell id="XDiT6CNxHAlSE8s8ffrH-4" value="" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="833" y="150" width="480" height="480" as="geometry" />
         </mxCell>
         <mxCell id="XDiT6CNxHAlSE8s8ffrH-5" value="Executor" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;" vertex="1" parent="1">
-          <mxGeometry x="1153" y="590" width="60" height="30" as="geometry" />
+          <mxGeometry x="1200" y="590" width="60" height="30" as="geometry" />
         </mxCell>
         <mxCell id="XDiT6CNxHAlSE8s8ffrH-35" style="edgeStyle=orthogonalEdgeStyle;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;fontSize=18;elbow=vertical;" edge="1" parent="1" source="XDiT6CNxHAlSE8s8ffrH-7" target="XDiT6CNxHAlSE8s8ffrH-9">
           <mxGeometry relative="1" as="geometry" />
@@ -50,7 +50,7 @@
         <mxCell id="XDiT6CNxHAlSE8s8ffrH-9" value="NettyBlockTransferService" style="rounded=1;whiteSpace=wrap;html=1;fontSize=18;" vertex="1" parent="1">
           <mxGeometry x="863" y="540" width="280" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="XDiT6CNxHAlSE8s8ffrH-26" style="edgeStyle=orthogonalEdgeStyle;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;fontSize=18;elbow=vertical;" edge="1" parent="1" source="XDiT6CNxHAlSE8s8ffrH-10" target="XDiT6CNxHAlSE8s8ffrH-2">
+        <mxCell id="XDiT6CNxHAlSE8s8ffrH-26" style="edgeStyle=orthogonalEdgeStyle;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;fontSize=18;elbow=vertical;strokeColor=#0432FF;" edge="1" parent="1" source="XDiT6CNxHAlSE8s8ffrH-10" target="XDiT6CNxHAlSE8s8ffrH-2">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="XDiT6CNxHAlSE8s8ffrH-10" value="BlockManager" style="rounded=1;whiteSpace=wrap;html=1;fontSize=18;" vertex="1" parent="1">
@@ -85,25 +85,25 @@
         <mxCell id="XDiT6CNxHAlSE8s8ffrH-16" value="NettyBlockTransferService" style="rounded=1;whiteSpace=wrap;html=1;fontSize=18;" vertex="1" parent="1">
           <mxGeometry x="853" y="760" width="280" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="XDiT6CNxHAlSE8s8ffrH-25" style="edgeStyle=orthogonalEdgeStyle;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;fontSize=18;elbow=vertical;" edge="1" parent="1" source="XDiT6CNxHAlSE8s8ffrH-22" target="XDiT6CNxHAlSE8s8ffrH-10">
+        <mxCell id="XDiT6CNxHAlSE8s8ffrH-25" style="edgeStyle=orthogonalEdgeStyle;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;fontSize=18;elbow=vertical;strokeColor=#0432FF;" edge="1" parent="1" source="XDiT6CNxHAlSE8s8ffrH-22" target="XDiT6CNxHAlSE8s8ffrH-10">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="XDiT6CNxHAlSE8s8ffrH-22" value="TorrentBroadcast" style="rounded=1;whiteSpace=wrap;html=1;fontSize=18;" vertex="1" parent="1">
           <mxGeometry x="70" y="510" width="200" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="XDiT6CNxHAlSE8s8ffrH-24" style="edgeStyle=orthogonalEdgeStyle;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;fontSize=18;elbow=vertical;" edge="1" parent="1" source="XDiT6CNxHAlSE8s8ffrH-23" target="XDiT6CNxHAlSE8s8ffrH-22">
+        <mxCell id="XDiT6CNxHAlSE8s8ffrH-24" style="edgeStyle=orthogonalEdgeStyle;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;fontSize=18;elbow=vertical;strokeColor=#0432FF;" edge="1" parent="1" source="XDiT6CNxHAlSE8s8ffrH-23" target="XDiT6CNxHAlSE8s8ffrH-22">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="XDiT6CNxHAlSE8s8ffrH-23" value="BroadcastManager" style="rounded=1;whiteSpace=wrap;html=1;fontSize=18;" vertex="1" parent="1">
           <mxGeometry x="70" y="620" width="200" height="60" as="geometry" />
         </mxCell>
         <mxCell id="XDiT6CNxHAlSE8s8ffrH-28" value="&amp;lt;init&amp;gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=18;" vertex="1" connectable="0" parent="1">
-          <mxGeometry x="230" y="595" as="geometry">
+          <mxGeometry x="190" y="597.5" as="geometry">
             <mxPoint x="8" y="-3" as="offset" />
           </mxGeometry>
         </mxCell>
         <mxCell id="XDiT6CNxHAlSE8s8ffrH-29" value="put" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=18;" vertex="1" connectable="0" parent="1">
-          <mxGeometry x="230" y="490" as="geometry">
+          <mxGeometry x="185" y="487.5" as="geometry">
             <mxPoint x="8" y="-3" as="offset" />
           </mxGeometry>
         </mxCell>
@@ -131,19 +131,27 @@
           <mxGeometry x="982" y="250" as="geometry" />
         </mxCell>
         <mxCell id="XDiT6CNxHAlSE8s8ffrH-37" value="BroadcastManager" style="rounded=1;whiteSpace=wrap;html=1;fontSize=18;" vertex="1" parent="1">
-          <mxGeometry x="1142" y="310" width="160" height="60" as="geometry" />
+          <mxGeometry x="1143" y="320" width="160" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="XDiT6CNxHAlSE8s8ffrH-39" value="获取cache" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=18;" vertex="1" connectable="0" parent="1">
-          <mxGeometry x="1094" y="299" as="geometry" />
+        <mxCell id="XDiT6CNxHAlSE8s8ffrH-39" value="获取本地cache的broadcast数据" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=18;" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="1183" y="300" as="geometry" />
         </mxCell>
         <mxCell id="XDiT6CNxHAlSE8s8ffrH-40" value="获取远程block" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=18;" vertex="1" connectable="0" parent="1">
-          <mxGeometry x="1073" y="382" as="geometry" />
+          <mxGeometry x="920" y="380" as="geometry" />
         </mxCell>
         <mxCell id="XDiT6CNxHAlSE8s8ffrH-41" value="获取远程block" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=18;" vertex="1" connectable="0" parent="1">
-          <mxGeometry x="1072" y="520" as="geometry" />
+          <mxGeometry x="942" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="XDiT6CNxHAlSE8s8ffrH-46" style="edgeStyle=orthogonalEdgeStyle;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;fontSize=18;elbow=vertical;" edge="1" parent="1" source="XDiT6CNxHAlSE8s8ffrH-42" target="XDiT6CNxHAlSE8s8ffrH-10">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="XDiT6CNxHAlSE8s8ffrH-42" value="NettyBlockRpcServer" style="rounded=1;whiteSpace=wrap;html=1;fontSize=18;" vertex="1" parent="1">
           <mxGeometry x="310" y="510" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="XDiT6CNxHAlSE8s8ffrH-47" value="getLocalBlock" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=18;" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="440" y="440" as="geometry">
+            <mxPoint x="-4" y="2" as="offset" />
+          </mxGeometry>
         </mxCell>
       </root>
     </mxGraphModel>
