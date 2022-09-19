@@ -42,16 +42,28 @@ Block传输服务，用于不同阶段任务之间的block数据的传输与读�
 
 execution memory指用于shuffle、join、sort、aggregation的内存，storage memory指用于cache和集群中传递数据的内存。
 
+MemoryManager的主要实现类为UnifiedMemoryManager：
+
+- 加强了执行和存储内存之间的软边界，二者可以向彼此借用内存。
+- 只要执行内存是空闲的，就可以借用为存储内存，直到重申为执行空间。当重申为执行空间时，缓存的block会从内存中清除，直到有足够的内存被释放来满足执行内存请求。
+- 执行可以借用存储内存。然而，存储不能清除已借用为执行空间的内存，因为实现起来比较复杂。因此如果执行任务消耗了大部分的存储内存，缓存block可能会失败。
+
+
 ### ShuffleWriter
 输出ShuffleMapTask的结果到内存或磁盘。主要实现类有：SortShuffleWriter、UnsafeShuffleWriter、BypassMergeSortShuffleWriter。
 
-- SortShuffleWriter利用ExternalSorter进行数据的排序和输出。
+- SortShuffleWriter利用ExternalSorter进行数据的排序和输出，SortShuffle。
 	- ExternalSorter使用Partitioner将key分区到不同partition，之后在partition内对key进行排序。在一个单独的文件中包括多个partition，每个partition位于文件的一个区间内，用于获取shuffle数据。
+	- spark默认开启的是Sort Shuffle。
 - UnsafeShuffleWriter利用ShuffleExternalSorter进行数据的排序和输出。
-	-ShuffleExternalSorter将数据被追加到data page。当所有数据都被插入或达到当前线程都shuffle memory上限，内存中数据会被排序。排序后的数据写入到一个单独的output文件中，文件格式与SortShuffleWriter输出的文件格式相同，每个partition作为一个单独的序列化的、压缩的流进行写入。
+	- ShuffleExternalSorter将数据被追加到data page。当所有数据都被插入或达到当前线程都shuffle memory上限，内存中数据会被排序。排序后的数据写入到一个单独的output文件中，文件格式与SortShuffleWriter输出的文件格式相同，每个partition作为一个单独的序列化的、压缩的流进行写入。
 	- 与ExternalSorter不同的是，ShuffleExternalSorter不会对spill文件进行merge。merge由它的调用者UnsafeShuffleWriter执行，使用一个特殊的merge流程，避免流多余的序列化/反序列化。	
-- BypassMergeSortShuffleWriter实现了基于排序的shuffle的hash式shuffle后退路径。输出数据到不同的文件，每个partition一个文件，然后将这些文件拼接为一个单独的文件，每个reducer使用一个区间。数据不存在内存中，直接向文件中追加。数据可通过IndexShuffleBlockResolver消费。
-	- 当没有map端的combine操作，且partition数目不超过一定阈值时，才选用这个writer。因为它同时打开所有partition的文件流，partition过多的话IO压力太大。
+	- 直接对序列化的数据进行排序，spill的过程也不需要反序列化即可完成。
+	- 可以申请堆内内存或利用JDK Unsafe API申请堆外内存。
+- BypassMergeSortShuffleWriter实现了基于排序的shuffle的hash式shuffle后退路径，HashShuffle。输出数据到不同的文件，每个partition一个文件，然后将这些文件拼接为一个单独的文件，每个reducer使用一个区间。数据不存在内存中，直接向文件中追加。数据可通过IndexShuffleBlockResolver消费。
+	- 当没有map端的combine操作，且partition数目（参数spark.shuffle.sort.bypassMergeThreshold，默认为200）不超过一定阈值时，才选用这个writer。因为它同时打开所有partition的文件流，partition过多的话IO压力太大。
+
+
 
 ### 不同层级的内存管理
 
@@ -133,6 +145,71 @@ Task的计算，会转换为一层层RDD的迭代计算，不同的数据转换�
 
 下游获取shuffle数据，是通过ShuffleRDD.compute()得到的。进而通过BlockStoreShuffleReader获取本地和远程RDD数据的Iterator，进行之后的计算。
 
+**如何知道每个远程block的位置？**
+
+
+## 静态内存管理与统一内存管理
+
+Spark 为存储内存和执行内存的管理提供了统一的接口——MemoryManager，同一个 Executor 内的任务都调用这个接口的方法来申请或释放内存。
+
+MemoryManager中内存管理的主要方法如下：
+
+```
+//申请存储内存
+def acquireStorageMemory(blockId: BlockId, numBytes: Long, memoryMode: MemoryMode): Boolean
+
+//申请展开内存
+def acquireUnrollMemory(blockId: BlockId, numBytes: Long, memoryMode: MemoryMode): Boolean
+
+//申请执行内存
+def acquireExecutionMemory(numBytes: Long, taskAttemptId: Long, memoryMode: MemoryMode): Long
+
+//释放存储内存
+def releaseStorageMemory(numBytes: Long, memoryMode: MemoryMode): Unit
+
+//释放执行内存
+def releaseExecutionMemory(numBytes: Long, taskAttemptId: Long, memoryMode: MemoryMode): Unit
+
+//释放展开内存
+def releaseUnrollMemory(numBytes: Long, memoryMode: MemoryMode): Unit
+```
+
+MemoryManager的具体实现上，在spark 1.6之前采用静态内存管理（3.0.0版本中已经移除），1.6版本之后采用统一内存管理（UnifiedMemoryManager）。
+
+### 静态内存管理
+
+在 Spark 最初采用的静态内存管理机制下，存储内存、执行内存和其他内存的大小在 Spark 应用程序运行期间均为固定的，但用户可以应用程序启动前进行配置，堆内内存的分配如图所示：
+
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/spark/spark_static_memorymanager_onheap.png)
+
+堆外的空间分配较为简单，只有存储内存和执行内存:
+
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/spark/spark_static_memorymanager_offheap.png)
+
+静态内存管理机制实现起来较为简单，但如果用户不熟悉 Spark 的存储机制，或没有根据具体的数据规模和计算任务或做相应的配置，很容易造成"一半海水，一半火焰"的局面，即存储内存和执行内存中的一方剩余大量的空间，而另一方却早早被占满，不得不淘汰或移出旧的内容以存储新的内容。
+
+### 统一内存管理
+
+Spark 1.6 之后引入的统一内存管理机制，与静态内存管理的区别在于存储内存和执行内存共享同一块空间，可以**动态占用**对方的空闲区域。
+
+堆内内存：
+
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/spark/spark_unified_memorymanager_onheap.png)
+
+堆外内存：
+
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/spark/spark_unified_memorymanager_offheap.png)
+
+堆外内存中，存储和执行内存也可以相互借用。
+
+其中最重要的优化在于动态占用机制，其规则如下：
+
+    设定基本的存储内存和执行内存区域（spark.storage.storageFraction 参数），该设定确定了双方各自拥有的空间的范围
+    双方的空间都不足时，则存储到硬盘；若己方空间不足而对方空余时，可借用对方的空间;（存储空间不足是指不足以放下一个完整的 Block）
+    执行内存的空间被对方占用后，可让对方将占用的部分转存到硬盘，然后"归还"借用的空间
+    存储内存的空间被对方占用后，无法让对方"归还"，因为需要考虑 Shuffle 过程中的很多因素，实现起来较为复杂
+    
+凭借统一内存管理机制，Spark 在一定程度上提高了堆内和堆外内存资源的利用率，降低了开发者维护 Spark 内存的难度，但并不意味着开发者可以高枕无忧。譬如，所以如果存储内存的空间太大或者说缓存的数据过多，反而会导致频繁的全量垃圾回收，降低任务执行时的性能，因为缓存的 RDD 数据通常都是长期驻留内存的。    
 
 ## 参考
 

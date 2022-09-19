@@ -31,7 +31,13 @@ Worker类：org.apache.spark.deploy.worker.Worker
 
 入口：org.apache.spark.deploy.SparkSubmit.main
 
-通过代码可以看出，最终通过反射调用JavaWordCount.main方法，执行计算逻辑。
+通过代码可以看出，默认client部署模式下，通过反射调用JavaWordCount.main方法，执行计算逻辑。
+
+而如果加上参数 “--deploy-mode cluster”，则流程为：
+
+- Client端启动ClientApp，通过ClientEndpoint向Master发送RequestSubmitDriver请求。
+- Master收到请求后，选择worker并发送LaunchDriver请求给worker，在worker端启动driver。
+- Worker端启动driver，执行JavaWordCount.main方法。
 
 ## Standalone模式架构
 
@@ -47,19 +53,33 @@ Standalone 集群中，主要包括Master、Worker、Client端，它们包含的
 
 Master、Worker都是RpcEndpoint节点，启动后开始接收RPC消息。
 
+上图是在client部署下，driver位于client端。而在cluster部署模式下，driver位于worker中。
+
 主要交互RPC消息：
 
 1. Worker启动时，向Master发送RegisterWorker消息。Master端注册成功后，返回RegisteredWorker消息。
-2. Client端提交task时，向Master发送Register消息。Master端注册Application成功后，返回RegisteredApplication消息。
+2. Client端提交task时，向Master发送Register消息。Master端注册Application成功后，返回RegisteredApplication消息。StandaloneAppClient是application与standalone cluster manager交互的接口，它通过内部类ClientEndpoint与Master进行交互。
 3. Master端接收到Application注册或Worker注册后，会进行schedule，即向Worker分配task。此时，发送LaunchExecutor消息到Worker端。
 4. Worker端task执行完成后，向driver发送StatusUpdate消息，从而可以进行结果获取等操作。
 
 
 ### Master
 
-Standalone集群中，Master作为ClusterManager，接收Worker的注册、心跳消息等。
+Standalone集群中，Master作为ClusterManager，负责管理Worker、Application、Driver，负责整个集群中资源的统一管理和分配，接收Worker、Driver的注册、更新状态、心跳信息等，也接收Application的注册。
 
-Master继承了RpcEndpoint类，通过receive等方法接收并处理消息。实现了LeaderElectable接口，启动后开始参与Leader选举。内部有一个JettyServer，用于查看所有worker和application。
+Master继承了RpcEndpoint类，通过receive等方法接收并处理消息。
+
+实现了LeaderElectable接口，启动后开始参与Leader选举。因此可以启动多个Master，只有一个Master是激活的，其他的都处于standby状态。
+Master内部有一个JettyServer，用于查看所有worker和application。
+
+#### PersistenceEngine
+
+Master的状态持久化，用于master的故障恢复。
+
+1. addApplication和addWorker方法要在完成app/worker注册之前调用。
+2. removeApplication和removeWorker 可以在任何时候调用。
+
+主要实现类有FileSystemPersistenceEngine和ZooKeeperPersistenceEngine等，分别利用文件系统和zookeeper进行持久化。
 
 ### Worker
 
