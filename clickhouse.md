@@ -4,7 +4,7 @@
 
 ## Clickhouse架构
 
-Clickhouse是一个**MPP架构的列式存储**数据库。
+Clickhouse是一个用于OLAP的**MPP架构的列式存储**数据库。
 
 ### MPP（massively parallel processing）架构
 
