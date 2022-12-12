@@ -413,6 +413,14 @@ G1是一款面向服务端应用的垃圾收集器。HotSpot开发团队赋予�
 
 在G1之前的其他收集器进行收集的范围都是整个新生代或者老年代，而G1不再是这样。使用G1收集器时，Java堆的内存布局就与其他收集器有很大差别，它将整个Java堆划分为多个大小相等的独立区域（Region），虽然还保留有新生代和老年代的概念，但新生代和老年代不再是物理隔离的了，它们都是一部分Region（不需要连续）的集合。
 
+**Region 概念:**
+
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/jvm/jvm_gc_g1_memory.png)
+
+在G1垃圾回收算法中，堆内存会被切分成为很多个固定大小区域（Region），每个是连续范围的虚拟内存。堆内存中一个区域(Region)的大小可以通过-XX:G1HeapRegionSize参数指定，大小区间最小1M、最大32M，总之是2的幂次方。默认把堆内存按照2048份均分。每个Region被标记了E、S、O和H，这些区域在逻辑上被映射为Eden，Survivor和老年代Old。
+
+**Humongous region**：用来存储大对象的，当一个对象占用的空间超过region的 50% 大小的时候，这个对象会被分配到Humongous region中去。
+
 G1跟踪各个Region里面的垃圾堆积的价值大小（回收所获得的空间大小以及回收所需时间的经验值），在后台维护一个优先列表，每次根据允许的收集时间，优先回收价值最大的Region（这也就是Garbage-First名称的来由）。
 
 特点：
@@ -423,11 +431,21 @@ G1跟踪各个Region里面的垃圾堆积的价值大小（回收所获得的空
 4. 可预测的停顿。G1除了追求低停顿外，还能建立可预测的停顿时间模型，能让使用者明确指定在一个长度为M毫秒的时间片段内，消耗在垃圾收集上的时间不得超过N毫秒，这几乎已经是实时Java（RTSJ）的垃圾收集器的特征了。
 
 
-对象引用关系维护：
+**G1收集过程可能有4个阶段：**
+
+- 新生代GC。一旦Eden区被占满，就会启动新生代GC。
+- 并发标记周期。
+- 混合收集Mixed GC。G1有专门的Full GC。当老年代的堆占有率达到参数(-XX:InitiatingHeapOccupancyPercent)设定的值时则触发Mixed GC。回收时会回收所有的 Young区和部分Old区以及大对象区。
+- Full GC。当Mixed GC赶不上对象产生的速度的时候就退化成Full GC。
+
+![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/jvm/jvm_gc_g1_flow.png)
+
+**对象引用关系维护：**
 
 在G1收集器中，Region之间的对象引用以及其他收集器中的新生代与老年代之间的对象引用，虚拟机都是**使用Remembered Set来避免全堆扫描的**。G1中每个Region都有一个与之对应的Remembered Set，虚拟机发现程序在对Reference类型的数据进行写操作时，会产生一个WriteBarrier暂时中断写操作，检查Reference引用的对象是否处于不同的Region之中（在分代的例子中就是检查是否老年代中的对象引用了新生代中的对象），如果是，便通过CardTable把相关引用信息记录到被引用对象所属的Region的Remembered Set之中。当进行内存回收时，在GC根节点的枚举范围中加入Remembered Set即可保证不对全堆扫描也不会有遗漏。
 
-如果不计算维护Remembered Set的操作，G1收集器的运作大致可划分为以下几个步骤：
+
+**并发标记周期**：
 
 - 初始标记（Initial Marking）。初始标记阶段仅仅只是标记一下GC Roots能直接关联到的对象，并且修改TAMS（Next Top atMark Start）的值，让下一阶段用户程序并发运行时，能在正确可用的Region中创建新对象，这阶段需要停顿线程，但耗时很短。
 - 并发标记（Concurrent Marking）。并发标记阶段是从GC Root开始对堆中对象进行可达性分析，找出存活的对象，这阶段耗时较长，但可与用户程序并发执行。
@@ -437,6 +455,10 @@ G1跟踪各个Region里面的垃圾堆积的价值大小（回收所获得的空
 
 ![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/jvm/jvm_gc_g1.png)
 
+
+#### ZGC垃圾回收器
+
+#### Shenandoah垃圾回收器
 
 #### 理解GC日志
 
