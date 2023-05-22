@@ -4,9 +4,10 @@ Checkpoint/savepoint机制是Flink中的重要内容，主要是定时保存或�
 
 在全部或部分节点异常重启时，可基于checkpoint进行恢复，或整个任务异常终止、升级时基于savepoint进行恢复，用于保证At Least Once和Exactly Once。
 
+Flink版本 : 1.14 。
 
 # 核心类
-Flink版本 : 1.14 。
+
 
 #### JobMaster
 
@@ -224,7 +225,7 @@ public void processBarrier(
     }
 }
 ```
-首先，Barrier如下图所示，是Source插入流中的一个轻量级数据，每次checkpoint的barrier可以区分。
+Barrier如下图所示，是Source插入流中的一个轻量级数据，每次checkpoint的barrier可以区分。
 
 ![](https://raw.githubusercontent.com/rainsbaby/notebook/master/imgs/flink/flink_checkpoint_barrier.png)
 

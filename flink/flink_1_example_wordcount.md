@@ -1,8 +1,8 @@
 # 简介
 
-Flink的内容很多，刚开始看时感觉茫然无头绪。
+本篇内容是我看Flink源码的第一篇记录。Flink的内容很多，刚开始看时可能感觉茫然无头绪。
 
-好在Flink提供了大量的例子，我从example目录下WordCount开始，一步步debug，终于理清了集群启动、job执行的基本流程。
+好在Flink提供了大量的例子，也有大数据组件中经典的WordCount示例。因此，我从example目录下WordCount开始，一步步debug，终于理清了集群启动、job执行的基本流程。
 
 # 核心类
 
@@ -133,4 +133,4 @@ ResourceManager负责资源申请/释放/管理。
 
 # 总结
 
-通过对WordCount这个例子一步步的debug，我理清了job执行的最简单例子，也找到了Flink的最核心内容，如JobManager、TaskManager等，为之后分模块深入地看打下了基础。
+通过对WordCount这个例子一步步的debug，了解了job执行的最简单流程，也找到了Flink的最核心内容，如JobManager、TaskManager等，为之后分模块深入地看打下了基础。
