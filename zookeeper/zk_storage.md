@@ -5,17 +5,29 @@ Zookeeper是一个分布式数据一致性框架，它保证所有Server端提�
 
 ### 核心类
 Record -- zookeeper-jute是zk中的序列化组件，Record是jute中的序列化反序列化的基础接口。server端的snapshot和transaction log都是利用jute进行序列化反序列化。
+
 ZKDatabase -- 表示server完整的内存数据，包括sessions、datatreee、commit logs。server启动时，从snapshot和transaction log文件反序列化并重播transaction，得到ZKDatabase。
+
 DataTree -- 维护树状结构，包括树状节点结构、dataWatches（监听节点变化）、childWatches（监听子节点变化）。
+
 NodeHashMap -- 可以管理节点hash值的Map。实现类NodeHashMapImpl基于ConcurrentHashMap实现，为整个map（即整棵树计算）维护一个hash值，当发生节点变更时重算此hash值，用于快速判断数据是否保持同步（learner和leader间数据同步？）。
+
 IWatchManager -- 节点监听管理。
+
 DigestCalculator -- 计算节点的digest。
+
 AdHash -- 维护整棵树的hash值。
+
 PathTrie -- 维护节点的字典树，用于限额管理。
+
 FileTxnSnapLog -- 管理SnapShot和TxnLog的上层类。
+
 TxnLog -- Transaction Log读写。
+
 SnapShot -- Snapshot文件读写。
+
 QuorumPeerMain -- 集群模式下的Server。
+
 ZooKeeperServerMain -- Standalone模式下的Server。
 
 #### 1. FileTxnLog
