@@ -292,6 +292,8 @@ Unaligned Checkpointing 的核心为：
 
 当所有barrier到达时，本operator的snapshot完成。
 
+即，除最后一个到达的barrier外，其他steam中barrier后到达的数据，已经被处理并发送给下游，这个信息记录在snapshot中。这样，基于checkpoint恢复时，可以知道哪些数据已经处理过了，就可以忽略这部分数据，就不会重复处理了。
+
 Unaligned Checkpointing的结果是：
 
 * 也可以实现Exactly Once；
